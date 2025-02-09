@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "baguette",
+  "productName": "fleur",
   "version": "0.1.0",
-  "identifier": "com.baguette.app",
+  "identifier": "com.fleur.app",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "baguette",
+        "title": "Fleur",
         "width": 800,
         "height": 600,
         "fullscreen": false,
@@ -25,6 +25,7 @@
         "resizable": false
       }
     ],
+    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }
