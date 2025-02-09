@@ -1,5 +1,5 @@
 import "./App.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar, ChevronRight, Chrome, HardDrive, Mail, Search, Youtube } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Separator } from "@radix-ui/react-separator";
@@ -51,6 +51,23 @@ const apps = [
 function App() {
   const [uvVersion, setUvVersion] = useState<string | null>(null);
   const [bunVersion, setBunVersion] = useState<string | null>(null);
+  const [configuredApps, setConfiguredApps] = useState<{
+    [key: string]: boolean;
+  }>({});
+
+  // Check which apps are configured when component mounts
+  useEffect(() => {
+    const checkAppConfigurations = async () => {
+      const configs: { [key: string]: boolean } = {};
+      for (const app of apps) {
+        configs[app.name] = await invoke("is_app_configured", {
+          appName: app.name,
+        });
+      }
+      setConfiguredApps(configs);
+    };
+    checkAppConfigurations();
+  }, []);
 
   const handleGetClick = async (appName: string) => {
     try {
@@ -145,7 +162,12 @@ function App() {
                         <p className="text-sm text-gray-500">{app.category}</p>
                         <button
                           onClick={() => handleGetClick(app.name)}
-                          className="mt-2 px-6 py-1.5 bg-blue-50 text-blue-600 rounded-full text-sm font-medium hover:bg-blue-100 transition-colors">
+                          disabled={!configuredApps[app.name]}
+                          className={`mt-2 px-6 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                            configuredApps[app.name]
+                              ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                              : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          }`}>
                           Get
                         </button>
                       </div>
