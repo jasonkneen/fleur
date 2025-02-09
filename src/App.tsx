@@ -54,27 +54,45 @@ function App() {
   const [configuredApps, setConfiguredApps] = useState<{
     [key: string]: boolean;
   }>({});
+  const [installedApps, setInstalledApps] = useState<{
+    [key: string]: boolean;
+  }>({});
 
-  // Check which apps are configured when component mounts
+  // Check which apps are configured and installed when component mounts
   useEffect(() => {
-    const checkAppConfigurations = async () => {
+    const checkAppStatuses = async () => {
       const configs: { [key: string]: boolean } = {};
+      const installed: { [key: string]: boolean } = {};
       for (const app of apps) {
         configs[app.name] = await invoke("is_app_configured", {
           appName: app.name,
         });
+        installed[app.name] = await invoke("is_app_installed", {
+          appName: app.name,
+        });
       }
       setConfiguredApps(configs);
+      setInstalledApps(installed);
     };
-    checkAppConfigurations();
+    checkAppStatuses();
   }, []);
 
   const handleGetClick = async (appName: string) => {
     try {
-      const result = await invoke("handle_app_get", { appName });
+      // Call appropriate function based on installation status
+      const result = await invoke(
+        installedApps[appName] ? "handle_app_uninstall" : "handle_app_get",
+        { appName }
+      );
       console.log(result);
+
+      // Refresh installation status after action
+      const isInstalled = await invoke<boolean>("is_app_installed", {
+        appName,
+      });
+      setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
     } catch (error) {
-      console.error("Failed to handle get:", error);
+      console.error("Failed to handle app action:", error);
     }
   };
 
@@ -164,11 +182,13 @@ function App() {
                           onClick={() => handleGetClick(app.name)}
                           disabled={!configuredApps[app.name]}
                           className={`mt-2 px-6 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                            configuredApps[app.name]
-                              ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                              : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            !configuredApps[app.name]
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : installedApps[app.name]
+                              ? "bg-red-50 text-red-600 hover:bg-red-100"
+                              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
                           }`}>
-                          Get
+                          {installedApps[app.name] ? "Uninstall" : "Get"}
                         </button>
                       </div>
                     </div>

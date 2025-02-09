@@ -90,6 +90,47 @@ fn handle_app_get(app_name: &str) -> Result<String, String> {
 }
 
 #[tauri::command]
+fn handle_app_uninstall(app_name: &str) -> Result<String, String> {
+    println!("Uninstalling app: {}", app_name);
+
+    // Find the app configuration
+    if let Some((_, config)) = APP_CONFIGS.iter().find(|(name, _)| *name == app_name) {
+        // Path to Claude config
+        let config_path = dirs::home_dir()
+            .ok_or("Could not find home directory".to_string())?
+            .join("Library/Application Support/Claude/claude_desktop_config.json");
+
+        // Read existing config
+        let config_str = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read config file: {}", e))?;
+
+        // Parse JSON
+        let mut config_json: Value = serde_json::from_str(&config_str)
+            .map_err(|e| format!("Failed to parse config JSON: {}", e))?;
+
+        // Remove config from mcpServers if it exists
+        if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
+            if mcp_servers.remove(config.mcp_key).is_some() {
+                // Write updated config back to file
+                let updated_config = serde_json::to_string_pretty(&config_json)
+                    .map_err(|e| format!("Failed to serialize config: {}", e))?;
+
+                fs::write(&config_path, updated_config)
+                    .map_err(|e| format!("Failed to write config file: {}", e))?;
+
+                Ok(format!("Removed {} configuration for {}", config.mcp_key, app_name))
+            } else {
+                Ok(format!("Configuration for {} was not found", app_name))
+            }
+        } else {
+            Err("Failed to find mcpServers in config".to_string())
+        }
+    } else {
+        Ok(format!("No configuration available for {}", app_name))
+    }
+}
+
+#[tauri::command]
 fn check_uv_version() -> Result<String, String> {
     match Command::new("uv").arg("--version").output() {
         Ok(output) => {
@@ -131,6 +172,34 @@ fn is_app_configured(app_name: &str) -> bool {
         .unwrap_or(false)
 }
 
+#[tauri::command]
+fn is_app_installed(app_name: &str) -> Result<bool, String> {
+    // Find the app configuration
+    if let Some((_, config)) = APP_CONFIGS.iter().find(|(name, _)| *name == app_name) {
+        // Path to Claude config
+        let config_path = dirs::home_dir()
+            .ok_or("Could not find home directory".to_string())?
+            .join("Library/Application Support/Claude/claude_desktop_config.json");
+
+        // Read existing config
+        let config_str = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read config file: {}", e))?;
+
+        // Parse JSON
+        let config_json: Value = serde_json::from_str(&config_str)
+            .map_err(|e| format!("Failed to parse config JSON: {}", e))?;
+
+        // Check if the app is in mcpServers
+        if let Some(mcp_servers) = config_json.get("mcpServers").and_then(|v| v.as_object()) {
+            Ok(mcp_servers.contains_key(config.mcp_key))
+        } else {
+            Ok(false)
+        }
+    } else {
+        Ok(false)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -140,7 +209,9 @@ pub fn run() {
             check_uv_version,
             check_bun_version,
             handle_app_get,
-            is_app_configured
+            handle_app_uninstall,
+            is_app_configured,
+            is_app_installed
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
