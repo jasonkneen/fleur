@@ -1,19 +1,30 @@
-import "./App.css";
-import { toast } from "sonner";
-import { useEffect, useState } from "react";
-import { Calendar, Chrome, HardDrive, Mail, Search, Youtube } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
-import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { cn } from "./lib/utils";
-import { Input } from "./components/ui/input";
+import './app.css';
+import { useEffect, useState } from 'react';
+import { Chrome, HardDrive, Search, Youtube } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
+import { Input } from './components/ui/input';
+import { Card, CardContent } from './components/ui/card';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from './components/ui/breadcrumb';
+import { AppInstallButton } from './components/app/AppInstallButton';
+import { AppIcon } from './components/app/AppIcon';
+import { AppDetail } from './components/app/AppDetail';
 
-const apps = [
+import type { App } from '@/types/components/app';
+
+const apps: App[] = [
   {
     name: "Browser",
     description: "Web browser",
-    icon: Chrome,
+    icon: {
+      type: 'lucide',
+      icon: Chrome
+    },
     category: "Utilities",
     price: "Get",
     developer: "Google LLC",
@@ -21,7 +32,10 @@ const apps = [
   {
     name: "Gmail",
     description: "Email and messaging platform",
-    icon: Mail,
+    icon: {
+      type: 'url',
+      url: `/servers/gmail.svg`
+    },
     category: "Productivity",
     price: "Free",
     developer: "Google LLC",
@@ -29,7 +43,10 @@ const apps = [
   {
     name: "Google Calendar",
     description: "Schedule and organize events",
-    icon: Calendar,
+    icon: {
+      type: 'url',
+      url: `/servers/gcal.svg`
+    },
     category: "Productivity",
     price: "Free",
     developer: "Google LLC",
@@ -37,7 +54,10 @@ const apps = [
   {
     name: "Google Drive",
     description: "Cloud storage and file sharing",
-    icon: HardDrive,
+    icon: {
+      type: 'lucide',
+      icon: HardDrive
+    },
     category: "Productivity",
     price: "Free",
     developer: "Google LLC",
@@ -45,12 +65,15 @@ const apps = [
   {
     name: "YouTube",
     description: "Video streaming platform",
-    icon: Youtube,
+    icon: {
+      type: 'lucide',
+      icon: Youtube
+    },
     category: "Entertainment",
     price: "Free",
     developer: "Google LLC",
   },
-];
+] as const;
 
 function App() {
   const [configuredApps, setConfiguredApps] = useState<{
@@ -59,6 +82,7 @@ function App() {
   const [installedApps, setInstalledApps] = useState<{
     [key: string]: boolean;
   }>({});
+  const [selectedApp, setSelectedApp] = useState<App | null>(null);
 
   // Check which apps are configured and installed when component mounts
   useEffect(() => {
@@ -90,24 +114,9 @@ function App() {
     checkAppStatuses();
   }, []);
 
-  const handleGetClick = async (appName: string) => {
-    try {
-      // Call appropriate function based on installation status
-      const result = await invoke(
-        installedApps[appName] ? "handle_app_uninstall" : "handle_app_get",
-        { appName }
-      );
-      console.log(result);
+  const handleInstallationChange = (appName: string, isInstalled: boolean) => {
+    setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
 
-      // Refresh installation status after action
-      const isInstalled = await invoke<boolean>("is_app_installed", {
-        appName,
-      });
-      setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
-      toast.success(`${appName} ${!isInstalled ? "uninstalled" : "installed"}`);
-    } catch (error) {
-      console.error("Failed to handle app action:", error);
-    }
   };
 
   return (
@@ -115,9 +124,11 @@ function App() {
       <header className="sticky top-0 bg-white border-b border-gray-200 z-10">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1">
-              <img src="/logo.svg" alt="Fleur" width={24} height={24} />
-              <h1 className="text-xl font-bold">Fleur</h1>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-1">
+                <img src="/logo.svg" alt="Fleur" width={24} height={24} />
+                <h1 className="text-xl font-bold">Fleur</h1>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="relative">
@@ -130,69 +141,82 @@ function App() {
               </div>
             </div>
           </div>
+          {selectedApp && (
+            <div className="mt-2">
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink onClick={() => setSelectedApp(null)} className="cursor-pointer">
+                      Apps
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <span className="text-gray-900">{selectedApp.name}</span>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <section>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {apps.map((app) => (
-              <Drawer>
-                <DrawerTrigger
-                  asChild
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}>
-                  <Card
+      <main className="container mx-auto px-4 py-4">
+        <div className="view-transition-wrapper">
+          {selectedApp ? (
+            <div style={{ viewTransitionName: 'app-detail' }}>
+              <AppDetail
+                app={selectedApp}
+                isConfigured={configuredApps[selectedApp.name]}
+                isInstalled={installedApps[selectedApp.name]}
+                onInstallationChange={(isInstalled) => handleInstallationChange(selectedApp.name, isInstalled)}
+              />
+            </div>
+          ) : (
+            <section className="flex flex-col gap-4">
+              <div className="flex items-center justify-start">
+                <h2 className="text-xl font-bold text-gray-900">Popular Apps</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+                {apps.map((app) => (
+                  <div
                     key={app.name}
-                    className="rounded-md border-gray-100 shadow-none cursor-pointer hover:shadow-sm transition-all duration-300">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between space-x-4">
-                        <div className="p-2 rounded-lg bg-gray-50">
-                          <app.icon className="w-5 h-5 text-gray-600" />
-                        </div>
-                        <div className="flex w-full justify-between items-center">
-                          <div>
-                            <h3 className="font-semibold text-sm">
-                              {app.name}
-                            </h3>
-                            <p className="text-xs text-gray-500">
-                              {app.category}
-                            </p>
+                    onClick={() => {
+                      if (document.startViewTransition) {
+                        document.startViewTransition(() => {
+                          setSelectedApp(app);
+                        });
+                      } else {
+                        setSelectedApp(app);
+                      }
+                    }}
+                    style={{ viewTransitionName: `app-card-${app.name}` }}
+                  >
+                    <Card className="border-transparent bg-transparent shadow-none">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-50 shadow-sm flex items-center justify-center">
+                            <AppIcon app={app} />
                           </div>
-                          <Button
-                            size="sm"
-                            className={cn(
-                              `transition-colors ${
-                                !configuredApps[app.name]
-                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                  : installedApps[app.name]
-                                  ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                  : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                              }`,
-                              !configuredApps[app.name] && "cursor-not-allowed"
-                            )}
-                            disabled={!configuredApps[app.name]}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleGetClick(app.name);
-                            }}
-                            variant="secondary">
-                            {installedApps[app.name] ? "Uninstall" : "Get"}
-                          </Button>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base text-gray-900">{app.name}</h3>
+                            <p className="text-sm text-gray-500">{app.category}</p>
+                          </div>
+                          <AppInstallButton
+                            app={app}
+                            isConfigured={configuredApps[app.name]}
+                            isInstalled={installedApps[app.name]}
+                            onInstallationChange={(isInstalled) => handleInstallationChange(app.name, isInstalled)}
+                          />
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </DrawerTrigger>
-                <DrawerContent className="h-[99%] px-4">
-                  <DrawerTitle>{app.name}</DrawerTitle>
-                  <p className="text-sm text-gray-500">{app.description}</p>
-                </DrawerContent>
-              </Drawer>
-            ))}
-          </div>
-        </section>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       </main>
     </div>
   );

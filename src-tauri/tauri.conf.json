@@ -18,14 +18,12 @@
         "fullscreen": false,
         "center": true,
         "decorations": true,
-        "transparent": true,
         "backgroundColor": "#FFFFFF",
         "theme": "Light",
-        "titleBarStyle": "Visible",
+
         "resizable": false
       }
     ],
-    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }
