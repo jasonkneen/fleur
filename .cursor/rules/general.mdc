@@ -1,0 +1,9 @@
+---
+description: General
+globs: 
+---
+Use bun as a package manager - never run npm commands not through it
+
+To run the dev server run `bun tauri dev`
+
+
