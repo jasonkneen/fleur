@@ -1,15 +1,8 @@
 import { toast } from 'sonner';
 import { invoke } from '@tauri-apps/api/core';
+import { AppInstallButtonProps } from '@/types/components/app';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { App } from './schema';
-
-interface AppInstallButtonProps {
-  app: App;
-  isConfigured: boolean;
-  isInstalled: boolean;
-  onInstallationChange: (isInstalled: boolean) => void;
-}
 
 export function AppInstallButton({
   app,

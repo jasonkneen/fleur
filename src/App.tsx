@@ -6,7 +6,7 @@ import { Label } from './components/ui/label';
 import { Input } from './components/ui/input';
 import { AppListItem } from './components/app/AppListItem';
 
-import type { App } from './components/app/schema';
+import type { App } from '@/types/components/app';
 
 const apps: App[] = [
   {

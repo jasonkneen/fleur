@@ -1,6 +1,6 @@
+import { AppListItemProps } from '@/types/components/app';
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Card, CardContent } from '@/components/ui/card';
-import { AppListItemProps } from './schema';
 import { AppInstallButton } from './AppInstallButton';
 import { AppIcon } from './AppIcon';
 
