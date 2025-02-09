@@ -1,19 +1,13 @@
-import './App.css';
-import { Calendar, Chrome, HardDrive, Mail, Search, Youtube } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from './components/ui/input';
+import "./App.css";
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { Calendar, Chrome, HardDrive, Mail, Search, Youtube } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { useEffect, useState } from 'react';
-import { Label } from './components/ui/label';
-import { cn } from './lib/utils';
-import { toast } from 'sonner';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "./lib/utils";
+import { Input } from "./components/ui/input";
 
 const apps = [
   {
@@ -59,8 +53,6 @@ const apps = [
 ];
 
 function App() {
-  const [uvVersion, setUvVersion] = useState<string | null>(null);
-  const [bunVersion, setBunVersion] = useState<string | null>(null);
   const [configuredApps, setConfiguredApps] = useState<{
     [key: string]: boolean;
   }>({});
@@ -70,6 +62,17 @@ function App() {
 
   // Check which apps are configured and installed when component mounts
   useEffect(() => {
+    const initializeEnvironment = async () => {
+      try {
+        const result = await invoke("ensure_node_environment");
+        console.log(result);
+        toast.success("Node.js environment initialized");
+      } catch (error) {
+        console.error("Failed to initialize Node.js environment:", error);
+        toast.error("Failed to initialize Node.js environment");
+      }
+    };
+
     const checkAppStatuses = async () => {
       const configs: { [key: string]: boolean } = {};
       const installed: { [key: string]: boolean } = {};
@@ -84,9 +87,9 @@ function App() {
       setConfiguredApps(configs);
       setInstalledApps(installed);
     };
+
+    initializeEnvironment();
     checkAppStatuses();
-    checkUvVersion();
-    checkBunVersion();
   }, []);
 
   const handleGetClick = async (appName: string) => {
@@ -106,24 +109,6 @@ function App() {
       toast.success(`${appName} ${!isInstalled ? "uninstalled" : "installed"}`);
     } catch (error) {
       console.error("Failed to handle app action:", error);
-    }
-  };
-
-  const checkUvVersion = async () => {
-    try {
-      const version = await invoke("check_uv_version");
-      setUvVersion(version as string);
-    } catch (error) {
-      setUvVersion(error as string);
-    }
-  };
-
-  const checkBunVersion = async () => {
-    try {
-      const version = await invoke("check_bun_version");
-      setBunVersion(version as string);
-    } catch (error) {
-      setBunVersion(error as string);
     }
   };
 
@@ -155,10 +140,14 @@ function App() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {apps.map((app) => (
               <Drawer>
-                <DrawerTrigger asChild onClick={(e) => {
-                  e.stopPropagation();
-                }}>
-                  <Card key={app.name} className="rounded-md border-gray-100 shadow-none cursor-pointer hover:shadow-sm transition-all duration-300">
+                <DrawerTrigger
+                  asChild
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}>
+                  <Card
+                    key={app.name}
+                    className="rounded-md border-gray-100 shadow-none cursor-pointer hover:shadow-sm transition-all duration-300">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between space-x-4">
                         <div className="p-2 rounded-lg bg-gray-50">
@@ -166,20 +155,31 @@ function App() {
                         </div>
                         <div className="flex w-full justify-between items-center">
                           <div>
-                            <h3 className="font-semibold text-sm">{app.name}</h3>
-                            <p className="text-xs text-gray-500">{app.category}</p>
+                            <h3 className="font-semibold text-sm">
+                              {app.name}
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              {app.category}
+                            </p>
                           </div>
-                          <Button size="sm" className={cn(`transition-colors ${
+                          <Button
+                            size="sm"
+                            className={cn(
+                              `transition-colors ${
                                 !configuredApps[app.name]
                                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                   : installedApps[app.name]
                                   ? "bg-red-50 text-red-600 hover:bg-red-100"
                                   : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                            }`, !configuredApps[app.name] && "cursor-not-allowed")}
-                            disabled={!configuredApps[app.name]} onClick={(e) => {
+                              }`,
+                              !configuredApps[app.name] && "cursor-not-allowed"
+                            )}
+                            disabled={!configuredApps[app.name]}
+                            onClick={(e) => {
                               e.stopPropagation();
                               handleGetClick(app.name);
-                            }} variant="secondary">
+                            }}
+                            variant="secondary">
                             {installedApps[app.name] ? "Uninstall" : "Get"}
                           </Button>
                         </div>
@@ -188,30 +188,11 @@ function App() {
                   </Card>
                 </DrawerTrigger>
                 <DrawerContent className="h-[99%] px-4">
-                  <DrawerTitle>{app.name}</DrawerTitle> 
+                  <DrawerTitle>{app.name}</DrawerTitle>
                   <p className="text-sm text-gray-500">{app.description}</p>
                 </DrawerContent>
               </Drawer>
             ))}
-          </div>
-          <div className="flex items-center gap-4 absolute bottom-0 left-0 w-full px-8 py-1 border-t border-gray-100">
-            <div className="flex items-center">
-              <Label className="text-xs">UV version</Label>
-              {uvVersion ? (
-                <p className="ml-2 text-xs text-gray-500">{uvVersion}</p>
-              ) : (
-                <p className="ml-2 text-xs text-gray-500">Not installed</p>
-              )}
-            </div>
-            <p className="text-gray-200">|</p>
-            <div className="flex items-center">
-              <Label className="text-xs">Bun version</Label>
-              {bunVersion ? (
-                <p className="ml-2 text-xs text-gray-500">{bunVersion}</p>
-              ) : (
-                <p className="ml-2 text-xs text-gray-500">Not installed</p>
-              )}
-            </div>
           </div>
         </section>
       </main>

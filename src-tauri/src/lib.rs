@@ -1,5 +1,5 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::fs;
 use serde_json::{Value, json};
 
@@ -11,20 +11,93 @@ struct AppConfig {
     args: Vec<String>,
 }
 
-fn get_bun_path() -> String {
+fn get_npx_shim_path() -> std::path::PathBuf {
     dirs::home_dir()
-        .map(|path| path.join(".bun/bin/bunx").to_string_lossy().to_string())
-        .unwrap_or_else(|| "bunx".to_string())
+        .unwrap_or_default()
+        .join(".local/share/fleur/bin/npx-fleur")
+}
+
+fn get_nvm_node_paths() -> Result<(String, String), String> {
+    let shell_command = r#"
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm use v20.9.0 > /dev/null 2>&1
+        echo "$NVM_DIR/versions/node/v20.9.0/bin/node"
+        echo "$NVM_DIR/versions/node/v20.9.0/bin/npx"
+    "#;
+
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg(shell_command)
+        .output()
+        .map_err(|e| format!("Failed to get node paths: {}", e))?;
+
+    if !output.status.success() {
+        return Err("Failed to get node and npx paths".to_string());
+    }
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let mut lines = output_str.lines();
+
+    let node_path = lines.next()
+        .ok_or("Failed to get node path")?
+        .trim()
+        .to_string();
+
+    let npx_path = lines.next()
+        .ok_or("Failed to get npx path")?
+        .trim()
+        .to_string();
+
+    Ok((node_path, npx_path))
+}
+
+fn ensure_npx_shim() -> Result<String, String> {
+    let shim_path = get_npx_shim_path();
+
+    // Get Node and NPX paths from nvm installation
+    let (node_path, npx_path) = get_nvm_node_paths()?;
+
+    // Create directory if it doesn't exist
+    if let Some(parent) = shim_path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create shim directory: {}", e))?;
+    }
+
+    // Create shim script if it doesn't exist or update it if paths have changed
+    let shim_content = format!(r#"#!/bin/sh
+# NPX shim for Fleur
+
+NODE="{}"
+NPX="{}"
+
+export PATH="$(dirname "$NODE"):$PATH"
+
+exec "$NPX" "$@"
+"#, node_path, npx_path);
+
+    // Always write the shim to ensure paths are up to date
+    fs::write(&shim_path, shim_content)
+        .map_err(|e| format!("Failed to write shim script: {}", e))?;
+
+    // Make the script executable
+    Command::new("chmod")
+        .arg("+x")
+        .arg(&shim_path)
+        .output()
+        .map_err(|e| format!("Failed to make shim executable: {}", e))?;
+
+    Ok(shim_path.to_string_lossy().to_string())
 }
 
 fn get_app_configs() -> Vec<(String, AppConfig)> {
-    let bun_path = get_bun_path();
+    let npx_shim = ensure_npx_shim().unwrap_or_else(|_| "npx".to_string());
 
     vec![
         ("Browser".to_string(), AppConfig {
             mcp_key: "puppeteer".to_string(),
-            command: bun_path,
-            args: vec!["@modelcontextprotocol/server-puppeteer".to_string(), "--debug".to_string()],
+            command: npx_shim.clone(),
+            args: vec!["-y".to_string(), "@modelcontextprotocol/server-puppeteer".to_string(), "--debug".to_string()],
         }),
         ("Gmail".to_string(), AppConfig {
             mcp_key: "gmail".to_string(),
@@ -179,34 +252,6 @@ fn handle_app_uninstall(app_name: &str) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn check_uv_version() -> Result<String, String> {
-    match Command::new("uv").arg("--version").output() {
-        Ok(output) => {
-            if output.status.success() {
-                Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
-            } else {
-                Err("uv is not installed or command failed".to_string())
-            }
-        }
-        Err(_) => Err("uv is not installed".to_string())
-    }
-}
-
-#[tauri::command]
-fn check_bun_version() -> Result<String, String> {
-    match Command::new("bun").arg("--version").output() {
-        Ok(output) => {
-            if output.status.success() {
-                Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
-            } else {
-                Err("bun is not installed or command failed".to_string())
-            }
-        }
-        Err(_) => Err("bun is not installed".to_string())
-    }
-}
-
-#[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
@@ -251,18 +296,127 @@ fn is_app_installed(app_name: &str) -> Result<bool, String> {
     }
 }
 
+fn check_node_version() -> Result<String, String> {
+    let shell_command = r#"
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        node --version
+    "#;
+
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg(shell_command)
+        .output()
+        .map_err(|e| format!("Failed to check node version: {}", e))?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        Err("Failed to get Node version".to_string())
+    }
+}
+
+fn install_node() -> Result<(), String> {
+    println!("Installing Node.js v20.9.0...");
+
+    let shell_command = r#"
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm install v20.9.0
+    "#;
+
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg(shell_command)
+        .output()
+        .map_err(|e| format!("Failed to run node installation: {}", e))?;
+
+    if !output.status.success() {
+        return Err(format!("Node installation failed: {}", String::from_utf8_lossy(&output.stderr)));
+    }
+
+    println!("Node.js v20.9.0 installed successfully");
+    Ok(())
+}
+
+fn check_nvm_installed() -> bool {
+    // First check if nvm is in PATH
+    let which_command = Command::new("which")
+        .arg("nvm")
+        .output()
+        .map_or(false, |output| output.status.success());
+
+    if !which_command {
+        return false;
+    }
+
+    // Then check if nvm --version works
+    let version_command = Command::new("bash")
+        .arg("-c")
+        .arg("nvm --version")
+        .output()
+        .map_or(false, |output| output.status.success());
+
+    version_command
+}
+
+fn install_nvm() -> Result<(), String> {
+    println!("Installing nvm...");
+
+    let shell_command = r#"
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+    "#;
+
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg(shell_command)
+        .output()
+        .map_err(|e| format!("Failed to install nvm: {}", e))?;
+
+    if !output.status.success() {
+        return Err(format!("nvm installation failed: {}", String::from_utf8_lossy(&output.stderr)));
+    }
+
+    println!("nvm installed successfully");
+    Ok(())
+}
+
+#[tauri::command]
+fn ensure_node_environment() -> Result<String, String> {
+    // First ensure nvm is installed
+    if !check_nvm_installed() {
+        install_nvm()?;
+    }
+
+    match check_node_version() {
+        Ok(version) => {
+            if version != "v20.9.0" {
+                install_node()?;
+            }
+            // Update the shim with the correct paths
+            ensure_npx_shim()?;
+            Ok("Node environment is ready".to_string())
+        }
+        Err(_) => {
+            install_node()?;
+            // Update the shim with the correct paths
+            ensure_npx_shim()?;
+            Ok("Node environment is ready".to_string())
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
-            check_uv_version,
-            check_bun_version,
             handle_app_get,
             handle_app_uninstall,
             is_app_configured,
-            is_app_installed
+            is_app_installed,
+            ensure_node_environment
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
