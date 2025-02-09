@@ -1,5 +1,5 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-use std::process::{Command, Stdio};
+use std::process::{Command};
 use std::fs;
 use serde_json::{Value, json};
 
@@ -297,20 +297,24 @@ fn is_app_installed(app_name: &str) -> Result<bool, String> {
 }
 
 fn check_node_version() -> Result<String, String> {
-    let shell_command = r#"
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-        node --version
-    "#;
+    // First check if node is in PATH
+    let which_command = Command::new("which")
+        .arg("node")
+        .output()
+        .map_err(|e| format!("Failed to check node existence: {}", e))?;
 
-    let output = Command::new("bash")
-        .arg("-c")
-        .arg(shell_command)
+    if !which_command.status.success() {
+        return Err("Node not found in PATH".to_string());
+    }
+
+    // Then check node version
+    let version_command = Command::new("node")
+        .arg("--version")
         .output()
         .map_err(|e| format!("Failed to check node version: {}", e))?;
 
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    if version_command.status.success() {
+        Ok(String::from_utf8_lossy(&version_command.stdout).trim().to_string())
     } else {
         Err("Failed to get Node version".to_string())
     }
@@ -319,15 +323,22 @@ fn check_node_version() -> Result<String, String> {
 fn install_node() -> Result<(), String> {
     println!("Installing Node.js v20.9.0...");
 
-    let shell_command = r#"
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-        nvm install v20.9.0
-    "#;
+    // Get nvm executable path
+    let nvm_path_output = Command::new("which")
+        .arg("nvm")
+        .output()
+        .map_err(|e| format!("Failed to get nvm path: {}", e))?;
 
-    let output = Command::new("bash")
-        .arg("-c")
-        .arg(shell_command)
+    if !nvm_path_output.status.success() {
+        return Err("nvm not found in PATH".to_string());
+    }
+
+    let nvm_path = String::from_utf8_lossy(&nvm_path_output.stdout).trim().to_string();
+
+    // Let nvm handle the installation
+    let output = Command::new(nvm_path)
+        .arg("install")
+        .arg("v20.9.0")
         .output()
         .map_err(|e| format!("Failed to run node installation: {}", e))?;
 

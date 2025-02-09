@@ -66,10 +66,8 @@ function App() {
       try {
         const result = await invoke("ensure_node_environment");
         console.log(result);
-        toast.success("Node.js environment initialized");
       } catch (error) {
         console.error("Failed to initialize Node.js environment:", error);
-        toast.error("Failed to initialize Node.js environment");
       }
     };
 
