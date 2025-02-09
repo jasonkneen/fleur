@@ -1,26 +1,26 @@
-import './App.css';
-import { useState } from 'react';
-import { Calendar, ChevronRight, Chrome, HardDrive, Mail, Search, Youtube } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
-import { Separator } from '@radix-ui/react-separator';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@radix-ui/react-hover-card';
+import "./App.css";
+import { useState } from "react";
+import { Calendar, ChevronRight, Chrome, HardDrive, Mail, Search, Youtube } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { Separator } from "@radix-ui/react-separator";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@radix-ui/react-hover-card";
 
 const apps = [
+  {
+    name: "Browser",
+    description: "Web browser",
+    icon: <Chrome className="w-16 h-16 text-blue-500" />,
+    category: "Utilities",
+    price: "Get",
+    developer: "Google LLC",
+  },
   {
     name: "Gmail",
     description: "Email and messaging platform",
     icon: <Mail className="w-16 h-16 text-red-500" />,
     category: "Productivity",
     price: "Free",
-    developer: "Google LLC"
-  },
-  {
-    name: "Google Chrome",
-    description: "Fast and secure web browser",
-    icon: <Chrome className="w-16 h-16 text-blue-500" />,
-    category: "Utilities",
-    price: "Free",
-    developer: "Google LLC"
+    developer: "Google LLC",
   },
   {
     name: "Google Calendar",
@@ -28,7 +28,7 @@ const apps = [
     icon: <Calendar className="w-16 h-16 text-green-500" />,
     category: "Productivity",
     price: "Free",
-    developer: "Google LLC"
+    developer: "Google LLC",
   },
   {
     name: "Google Drive",
@@ -36,7 +36,7 @@ const apps = [
     icon: <HardDrive className="w-16 h-16 text-yellow-500" />,
     category: "Productivity",
     price: "Free",
-    developer: "Google LLC"
+    developer: "Google LLC",
   },
   {
     name: "YouTube",
@@ -44,17 +44,26 @@ const apps = [
     icon: <Youtube className="w-16 h-16 text-red-600" />,
     category: "Entertainment",
     price: "Free",
-    developer: "Google LLC"
-  }
+    developer: "Google LLC",
+  },
 ];
 
 function App() {
   const [uvVersion, setUvVersion] = useState<string | null>(null);
   const [bunVersion, setBunVersion] = useState<string | null>(null);
 
+  const handleGetClick = async (appName: string) => {
+    try {
+      const result = await invoke("handle_app_get", { appName });
+      console.log(result);
+    } catch (error) {
+      console.error("Failed to handle get:", error);
+    }
+  };
+
   const checkUvVersion = async () => {
     try {
-      const version = await invoke('check_uv_version');
+      const version = await invoke("check_uv_version");
       setUvVersion(version as string);
     } catch (error) {
       setUvVersion(error as string);
@@ -63,7 +72,7 @@ function App() {
 
   const checkBunVersion = async () => {
     try {
-      const version = await invoke('check_bun_version');
+      const version = await invoke("check_bun_version");
       setBunVersion(version as string);
     } catch (error) {
       setBunVersion(error as string);
@@ -81,8 +90,7 @@ function App() {
                 <div className="flex flex-col items-center">
                   <button
                     onClick={checkUvVersion}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
                     Check UV
                   </button>
                   {uvVersion && (
@@ -92,8 +100,7 @@ function App() {
                 <div className="flex flex-col items-center">
                   <button
                     onClick={checkBunVersion}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-                  >
+                    className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
                     Check Bun
                   </button>
                   {bunVersion && (
@@ -136,8 +143,10 @@ function App() {
                       <div>
                         <h3 className="font-semibold text-lg">{app.name}</h3>
                         <p className="text-sm text-gray-500">{app.category}</p>
-                        <button className="mt-2 px-4 py-1 bg-gray-100 rounded-full text-sm font-medium hover:bg-gray-200">
-                          {app.price}
+                        <button
+                          onClick={() => handleGetClick(app.name)}
+                          className="mt-2 px-6 py-1.5 bg-blue-50 text-blue-600 rounded-full text-sm font-medium hover:bg-blue-100 transition-colors">
+                          Get
                         </button>
                       </div>
                     </div>
