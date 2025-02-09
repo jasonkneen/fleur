@@ -13,8 +13,8 @@ struct AppConfig {
 
 fn get_bun_path() -> String {
     dirs::home_dir()
-        .map(|path| path.join(".bun/bin/bun").to_string_lossy().to_string())
-        .unwrap_or_else(|| "bun".to_string())
+        .map(|path| path.join(".bun/bin/bunx").to_string_lossy().to_string())
+        .unwrap_or_else(|| "bunx".to_string())
 }
 
 fn get_app_configs() -> Vec<(String, AppConfig)> {
@@ -24,7 +24,7 @@ fn get_app_configs() -> Vec<(String, AppConfig)> {
         ("Browser".to_string(), AppConfig {
             mcp_key: "puppeteer".to_string(),
             command: bun_path,
-            args: vec!["x".to_string(), "@modelcontextprotocol/server-puppeteer".to_string(), "--debug".to_string()],
+            args: vec!["@modelcontextprotocol/server-puppeteer".to_string(), "--debug".to_string()],
         }),
         ("Gmail".to_string(), AppConfig {
             mcp_key: "gmail".to_string(),
