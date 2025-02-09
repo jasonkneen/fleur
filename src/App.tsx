@@ -1,15 +1,18 @@
-import "./App.css";
-import { useEffect, useState } from "react";
-import { Calendar, ChevronRight, Chrome, HardDrive, Mail, Search, Youtube } from "lucide-react";
+import './App.css';
+import { Calendar, Chrome, HardDrive, Mail, Search, Youtube } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from './components/ui/input';
 import { invoke } from "@tauri-apps/api/core";
-import { Separator } from "@radix-ui/react-separator";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@radix-ui/react-hover-card";
+import { useEffect, useState } from 'react';
+import { Label } from './components/ui/label';
+import { Separator } from './components/ui/separator';
 
 const apps = [
   {
     name: "Browser",
     description: "Web browser",
-    icon: <Chrome className="w-16 h-16 text-blue-500" />,
+    icon: Chrome,
     category: "Utilities",
     price: "Get",
     developer: "Google LLC",
@@ -17,7 +20,7 @@ const apps = [
   {
     name: "Gmail",
     description: "Email and messaging platform",
-    icon: <Mail className="w-16 h-16 text-red-500" />,
+    icon: Mail,
     category: "Productivity",
     price: "Free",
     developer: "Google LLC",
@@ -25,7 +28,7 @@ const apps = [
   {
     name: "Google Calendar",
     description: "Schedule and organize events",
-    icon: <Calendar className="w-16 h-16 text-green-500" />,
+    icon: Calendar,
     category: "Productivity",
     price: "Free",
     developer: "Google LLC",
@@ -33,7 +36,7 @@ const apps = [
   {
     name: "Google Drive",
     description: "Cloud storage and file sharing",
-    icon: <HardDrive className="w-16 h-16 text-yellow-500" />,
+    icon: HardDrive,
     category: "Productivity",
     price: "Free",
     developer: "Google LLC",
@@ -41,7 +44,7 @@ const apps = [
   {
     name: "YouTube",
     description: "Video streaming platform",
-    icon: <Youtube className="w-16 h-16 text-red-600" />,
+    icon: Youtube,
     category: "Entertainment",
     price: "Free",
     developer: "Google LLC",
@@ -75,6 +78,8 @@ function App() {
       setInstalledApps(installed);
     };
     checkAppStatuses();
+    checkUvVersion();
+    checkBunVersion();
   }, []);
 
   const handleGetClick = async (appName: string) => {
@@ -115,40 +120,18 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <header className="sticky top-0 bg-white border-b border-gray-200 z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Mac App Store</h1>
+            <h1 className="text-xl font-bold">Fleur</h1>
             <div className="flex items-center space-x-4">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <button
-                    onClick={checkUvVersion}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                    Check UV
-                  </button>
-                  {uvVersion && (
-                    <span className="text-sm mt-1">{uvVersion}</span>
-                  )}
-                </div>
-                <div className="flex flex-col items-center">
-                  <button
-                    onClick={checkBunVersion}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
-                    Check Bun
-                  </button>
-                  {bunVersion && (
-                    <span className="text-sm mt-1">{bunVersion}</span>
-                  )}
-                </div>
-              </div>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
                   type="text"
                   placeholder="Search apps..."
-                  className="pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-8 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -158,52 +141,52 @@ function App() {
 
       <main className="container mx-auto px-4 py-8">
         <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold">Featured Apps</h2>
-            <button className="text-blue-500 hover:text-blue-600 flex items-center">
-              See All
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {apps.map((app) => (
-              <HoverCard key={app.name}>
-                <HoverCardTrigger asChild>
-                  <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                    <div className="flex items-start space-x-4">
-                      <div className="bg-gray-50 p-2 rounded-xl">
-                        {app.icon}
-                      </div>
+              <Card key={app.name} className="rounded-md border-gray-100 shadow-none">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between space-x-4">
+                    <div className="p-2 rounded-lg bg-gray-50">
+                      <app.icon className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div className="flex w-full justify-between items-center">
                       <div>
-                        <h3 className="font-semibold text-lg">{app.name}</h3>
-                        <p className="text-sm text-gray-500">{app.category}</p>
-                        <button
-                          onClick={() => handleGetClick(app.name)}
-                          disabled={!configuredApps[app.name]}
-                          className={`mt-2 px-6 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        <h3 className="font-semibold text-sm">{app.name}</h3>
+                        <p className="text-xs text-gray-500">{app.category}</p>
+                      </div>
+                      <Button size="sm" className={`transition-colors ${
                             !configuredApps[app.name]
                               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                               : installedApps[app.name]
                               ? "bg-red-50 text-red-600 hover:bg-red-100"
                               : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                          }`}>
-                          {installedApps[app.name] ? "Uninstall" : "Get"}
-                        </button>
-                      </div>
+                          }`} disabled={!configuredApps[app.name]} onClick={() => handleGetClick(app.name)} variant="secondary">
+                        {installedApps[app.name] ? "Uninstall" : "Get"}
+                      </Button>
                     </div>
                   </div>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-80 p-4 bg-white rounded-lg shadow-lg">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold">{app.name}</h4>
-                    <p className="text-sm text-gray-500">{app.description}</p>
-                    <Separator className="my-2" />
-                    <p className="text-xs text-gray-400">By {app.developer}</p>
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
+                </CardContent>
+              </Card>
             ))}
+          </div>
+          <div className="flex items-center gap-4 absolute bottom-0 left-0 w-full px-4 py-1 border-t border-gray-200">
+            <div className="flex items-center">
+              <Label>UV version</Label>
+              {uvVersion ? (
+                <p className="ml-2 text-sm text-gray-500">{uvVersion}</p>
+              ) : (
+                <p className="ml-2 text-sm text-gray-500">Not installed</p>
+              )}
+            </div>
+            <p className="text-gray-200">|</p>
+            <div className="flex items-center">
+              <Label>Bun version</Label>
+              {bunVersion ? (
+                <p className="ml-2 text-sm text-gray-500">{bunVersion}</p>
+              ) : (
+                <p className="ml-2 text-sm text-gray-500">Not installed</p>
+              )}
+            </div>
           </div>
         </section>
       </main>
