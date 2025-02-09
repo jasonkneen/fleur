@@ -1,12 +1,11 @@
-import './App.css';
-import { Calendar, Chrome, HardDrive, Mail, Search, Youtube } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from './components/ui/input';
+import "./App.css";
+import { useEffect, useState } from "react";
+import { Calendar, Chrome, HardDrive, Mail, Search, Youtube } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { useEffect, useState } from 'react';
-import { Label } from './components/ui/label';
-import { Separator } from './components/ui/separator';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "./components/ui/label";
+import { Input } from "./components/ui/input";
 
 const apps = [
   {
@@ -143,7 +142,9 @@ function App() {
         <section>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {apps.map((app) => (
-              <Card key={app.name} className="rounded-md border-gray-100 shadow-none">
+              <Card
+                key={app.name}
+                className="rounded-md border-gray-100 shadow-none">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between space-x-4">
                     <div className="p-2 rounded-lg bg-gray-50">
@@ -154,13 +155,18 @@ function App() {
                         <h3 className="font-semibold text-sm">{app.name}</h3>
                         <p className="text-xs text-gray-500">{app.category}</p>
                       </div>
-                      <Button size="sm" className={`transition-colors ${
-                            !configuredApps[app.name]
-                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : installedApps[app.name]
-                              ? "bg-red-50 text-red-600 hover:bg-red-100"
-                              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                          }`} disabled={!configuredApps[app.name]} onClick={() => handleGetClick(app.name)} variant="secondary">
+                      <Button
+                        size="sm"
+                        className={`transition-colors ${
+                          !configuredApps[app.name]
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : installedApps[app.name]
+                            ? "bg-red-50 text-red-600 hover:bg-red-100"
+                            : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                        }`}
+                        disabled={!configuredApps[app.name]}
+                        onClick={() => handleGetClick(app.name)}
+                        variant="secondary">
                         {installedApps[app.name] ? "Uninstall" : "Get"}
                       </Button>
                     </div>

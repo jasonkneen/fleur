@@ -49,6 +49,38 @@ fn get_app_configs() -> Vec<(String, AppConfig)> {
     ]
 }
 
+fn ensure_config_file(config_path: &std::path::PathBuf) -> Result<(), String> {
+    if !config_path.exists() {
+        let initial_config = json!({
+            "mcpServers": {}
+        });
+
+        let config_str = serde_json::to_string_pretty(&initial_config)
+            .map_err(|e| format!("Failed to create initial config: {}", e))?;
+
+        // Create parent directories if they don't exist
+        if let Some(parent) = config_path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create config directory: {}", e))?;
+        }
+
+        fs::write(config_path, config_str)
+            .map_err(|e| format!("Failed to write initial config file: {}", e))?;
+    }
+    Ok(())
+}
+
+fn ensure_mcp_servers(config_json: &mut Value) -> Result<(), String> {
+    if !config_json.is_object() {
+        *config_json = json!({
+            "mcpServers": {}
+        });
+    } else if !config_json.get("mcpServers").map_or(false, |v| v.is_object()) {
+        config_json["mcpServers"] = json!({});
+    }
+    Ok(())
+}
+
 #[tauri::command]
 fn handle_app_get(app_name: &str) -> Result<String, String> {
     println!("Installing app: {}", app_name);
@@ -60,13 +92,18 @@ fn handle_app_get(app_name: &str) -> Result<String, String> {
             .ok_or("Could not find home directory".to_string())?
             .join("Library/Application Support/Claude/claude_desktop_config.json");
 
+        // Ensure config file exists with proper structure
+        ensure_config_file(&config_path)?;
+
         // Read existing config
         let config_str = fs::read_to_string(&config_path)
             .map_err(|e| format!("Failed to read config file: {}", e))?;
 
-        // Parse JSON
+        // Parse JSON and ensure proper structure
         let mut config_json: Value = serde_json::from_str(&config_str)
             .map_err(|e| format!("Failed to parse config JSON: {}", e))?;
+
+        ensure_mcp_servers(&mut config_json)?;
 
         // Add puppeteer config to mcpServers if it doesn't exist
         if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
@@ -200,12 +237,15 @@ fn is_app_installed(app_name: &str) -> Result<bool, String> {
         let config_json: Value = serde_json::from_str(&config_str)
             .map_err(|e| format!("Failed to parse config JSON: {}", e))?;
 
-        // Check if the app is in mcpServers
-        if let Some(mcp_servers) = config_json.get("mcpServers").and_then(|v| v.as_object()) {
-            Ok(mcp_servers.contains_key(&config.mcp_key))
-        } else {
-            Ok(false)
+        // Check if mcpServers exists and contains the key
+        if let Some(mcp_servers) = config_json.get("mcpServers") {
+            if let Some(servers) = mcp_servers.as_object() {
+                return Ok(servers.contains_key(&config.mcp_key));
+            }
         }
+
+        // Return false if mcpServers doesn't exist or isn't an object
+        Ok(false)
     } else {
         Ok(false)
     }
