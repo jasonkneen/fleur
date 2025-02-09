@@ -2,9 +2,18 @@ import './app.css';
 import { useEffect, useState } from 'react';
 import { Chrome, HardDrive, Search, Youtube } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import { Label } from './components/ui/label';
 import { Input } from './components/ui/input';
-import { AppListItem } from './components/app/AppListItem';
+import { Card, CardContent } from './components/ui/card';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from './components/ui/breadcrumb';
+import { AppInstallButton } from './components/app/AppInstallButton';
+import { AppIcon } from './components/app/AppIcon';
+import { AppDetail } from './components/app/AppDetail';
 
 import type { App } from '@/types/components/app';
 
@@ -67,14 +76,13 @@ const apps: App[] = [
 ] as const;
 
 function App() {
-  const [uvVersion, setUvVersion] = useState<string | null>(null);
-  const [bunVersion, setBunVersion] = useState<string | null>(null);
   const [configuredApps, setConfiguredApps] = useState<{
     [key: string]: boolean;
   }>({});
   const [installedApps, setInstalledApps] = useState<{
     [key: string]: boolean;
   }>({});
+  const [selectedApp, setSelectedApp] = useState<App | null>(null);
 
   // Check which apps are configured and installed when component mounts
   useEffect(() => {
@@ -93,27 +101,8 @@ function App() {
       setInstalledApps(installed);
     };
     checkAppStatuses();
-    checkUvVersion();
-    checkBunVersion();
+
   }, []);
-
-  const checkUvVersion = async () => {
-    try {
-      const version = await invoke("check_uv_version");
-      setUvVersion(version as string);
-    } catch (error) {
-      setUvVersion(error as string);
-    }
-  };
-
-  const checkBunVersion = async () => {
-    try {
-      const version = await invoke("check_bun_version");
-      setBunVersion(version as string);
-    } catch (error) {
-      setBunVersion(error as string);
-    }
-  };
 
   const handleInstallationChange = (appName: string, isInstalled: boolean) => {
     setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
@@ -124,9 +113,11 @@ function App() {
       <header className="sticky top-0 bg-white border-b border-gray-200 z-10">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1">
-              <img src="/logo.svg" alt="Fleur" width={24} height={24} />
-              <h1 className="text-xl font-bold">Fleur</h1>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-1">
+                <img src="/logo.svg" alt="Fleur" width={24} height={24} />
+                <h1 className="text-xl font-bold">Fleur</h1>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="relative">
@@ -139,45 +130,82 @@ function App() {
               </div>
             </div>
           </div>
+          {selectedApp && (
+            <div className="mt-2">
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink onClick={() => setSelectedApp(null)} className="cursor-pointer">
+                      Apps
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <span className="text-gray-900">{selectedApp.name}</span>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+          )}
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-4">
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-start">
-            <h2 className="text-xl font-bold text-gray-900">Popular Apps</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {apps.map((app) => (
-              <AppListItem
-                key={app.name}
-                app={app}
-                isConfigured={configuredApps[app.name]}
-                isInstalled={installedApps[app.name]}
-                onInstallationChange={(isInstalled) => handleInstallationChange(app.name, isInstalled)}
+        <div className="view-transition-wrapper">
+          {selectedApp ? (
+            <div style={{ viewTransitionName: 'app-detail' }}>
+              <AppDetail
+                app={selectedApp}
+                isConfigured={configuredApps[selectedApp.name]}
+                isInstalled={installedApps[selectedApp.name]}
+                onInstallationChange={(isInstalled) => handleInstallationChange(selectedApp.name, isInstalled)}
               />
-            ))}
-          </div>
-          <div className="flex items-center gap-4 absolute bottom-0 left-0 w-full px-8 py-1 border-t border-gray-100">
-            <div className="flex items-center">
-              <Label className="text-xs">UV version</Label>
-              {uvVersion ? (
-                <p className="ml-2 text-xs text-gray-500">{uvVersion}</p>
-              ) : (
-                <p className="ml-2 text-xs text-gray-500">Not installed</p>
-              )}
             </div>
-            <p className="text-gray-200">|</p>
-            <div className="flex items-center">
-              <Label className="text-xs">Bun version</Label>
-              {bunVersion ? (
-                <p className="ml-2 text-xs text-gray-500">{bunVersion}</p>
-              ) : (
-                <p className="ml-2 text-xs text-gray-500">Not installed</p>
-              )}
-            </div>
-          </div>
-        </section>
+          ) : (
+            <section className="flex flex-col gap-4">
+              <div className="flex items-center justify-start">
+                <h2 className="text-xl font-bold text-gray-900">Popular Apps</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+                {apps.map((app) => (
+                  <div
+                    key={app.name}
+                    onClick={() => {
+                      if (document.startViewTransition) {
+                        document.startViewTransition(() => {
+                          setSelectedApp(app);
+                        });
+                      } else {
+                        setSelectedApp(app);
+                      }
+                    }}
+                    style={{ viewTransitionName: `app-card-${app.name}` }}
+                  >
+                    <Card className="border-transparent bg-transparent shadow-none">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-50 shadow-sm flex items-center justify-center">
+                            <AppIcon app={app} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base text-gray-900">{app.name}</h3>
+                            <p className="text-sm text-gray-500">{app.category}</p>
+                          </div>
+                          <AppInstallButton
+                            app={app}
+                            isConfigured={configuredApps[app.name]}
+                            isInstalled={installedApps[app.name]}
+                            onInstallationChange={(isInstalled) => handleInstallationChange(app.name, isInstalled)}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       </main>
     </div>
   );

@@ -34,14 +34,14 @@ export function AppInstallButton({
   return (
     <Button 
       size="sm" 
-      className={cn(`transition-colors ${
+      className={cn(`transition-colors rounded-full px-6 ${
         !isConfigured
           ? "bg-gray-100 text-gray-400 cursor-not-allowed"
           : isInstalled
-          ? "bg-red-50 text-red-600 hover:bg-red-100"
-          : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+          ? "bg-red-50 text-red-600 font-semibold hover:bg-red-100" 
+          : "bg-gray-100 text-blue-600 font-semibold hover:bg-gray-200"
       }`, !isConfigured && "cursor-not-allowed")}
-      disabled={!isConfigured} 
+      disabled={!isConfigured}
       onClick={handleGetClick}
       variant="secondary"
     >
