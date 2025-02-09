@@ -86,6 +86,15 @@ function App() {
 
   // Check which apps are configured and installed when component mounts
   useEffect(() => {
+    const initializeEnvironment = async () => {
+      try {
+        const result = await invoke("ensure_node_environment");
+        console.log(result);
+      } catch (error) {
+        console.error("Failed to initialize Node.js environment:", error);
+      }
+    };
+
     const checkAppStatuses = async () => {
       const configs: { [key: string]: boolean } = {};
       const installed: { [key: string]: boolean } = {};
@@ -100,12 +109,14 @@ function App() {
       setConfiguredApps(configs);
       setInstalledApps(installed);
     };
-    checkAppStatuses();
 
+    initializeEnvironment();
+    checkAppStatuses();
   }, []);
 
   const handleInstallationChange = (appName: string, isInstalled: boolean) => {
     setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
+
   };
 
   return (
