@@ -1,25 +1,21 @@
-import './App.css';
-import { Calendar, Chrome, HardDrive, Mail, Search, Youtube } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from './components/ui/input';
-import { invoke } from "@tauri-apps/api/core";
+import './app.css';
 import { useEffect, useState } from 'react';
+import { Chrome, HardDrive, Search, Youtube } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
 import { Label } from './components/ui/label';
-import { cn } from './lib/utils';
-import { toast } from 'sonner';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
+import { Input } from './components/ui/input';
+import { AppListItem } from './components/app/AppListItem';
 
-const apps = [
+import type { App } from './components/app/schema';
+
+const apps: App[] = [
   {
     name: "Browser",
     description: "Web browser",
-    icon: Chrome,
+    icon: {
+      type: 'lucide',
+      icon: Chrome
+    },
     category: "Utilities",
     price: "Get",
     developer: "Google LLC",
@@ -27,7 +23,10 @@ const apps = [
   {
     name: "Gmail",
     description: "Email and messaging platform",
-    icon: Mail,
+    icon: {
+      type: 'url',
+      url: `/servers/gmail.svg`
+    },
     category: "Productivity",
     price: "Free",
     developer: "Google LLC",
@@ -35,7 +34,10 @@ const apps = [
   {
     name: "Google Calendar",
     description: "Schedule and organize events",
-    icon: Calendar,
+    icon: {
+      type: 'url',
+      url: `/servers/gcal.svg`
+    },
     category: "Productivity",
     price: "Free",
     developer: "Google LLC",
@@ -43,7 +45,10 @@ const apps = [
   {
     name: "Google Drive",
     description: "Cloud storage and file sharing",
-    icon: HardDrive,
+    icon: {
+      type: 'lucide',
+      icon: HardDrive
+    },
     category: "Productivity",
     price: "Free",
     developer: "Google LLC",
@@ -51,12 +56,15 @@ const apps = [
   {
     name: "YouTube",
     description: "Video streaming platform",
-    icon: Youtube,
+    icon: {
+      type: 'lucide',
+      icon: Youtube
+    },
     category: "Entertainment",
     price: "Free",
     developer: "Google LLC",
   },
-];
+] as const;
 
 function App() {
   const [uvVersion, setUvVersion] = useState<string | null>(null);
@@ -89,26 +97,6 @@ function App() {
     checkBunVersion();
   }, []);
 
-  const handleGetClick = async (appName: string) => {
-    try {
-      // Call appropriate function based on installation status
-      const result = await invoke(
-        installedApps[appName] ? "handle_app_uninstall" : "handle_app_get",
-        { appName }
-      );
-      console.log(result);
-
-      // Refresh installation status after action
-      const isInstalled = await invoke<boolean>("is_app_installed", {
-        appName,
-      });
-      setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
-      toast.success(`${appName} ${!isInstalled ? "uninstalled" : "installed"}`);
-    } catch (error) {
-      console.error("Failed to handle app action:", error);
-    }
-  };
-
   const checkUvVersion = async () => {
     try {
       const version = await invoke("check_uv_version");
@@ -125,6 +113,10 @@ function App() {
     } catch (error) {
       setBunVersion(error as string);
     }
+  };
+
+  const handleInstallationChange = (appName: string, isInstalled: boolean) => {
+    setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
   };
 
   return (
@@ -154,44 +146,13 @@ function App() {
         <section>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {apps.map((app) => (
-              <Drawer>
-                <DrawerTrigger asChild onClick={(e) => {
-                  e.stopPropagation();
-                }}>
-                  <Card key={app.name} className="rounded-md border-gray-100 shadow-none cursor-pointer hover:shadow-sm transition-all duration-300">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between space-x-4">
-                        <div className="p-2 rounded-lg bg-gray-50">
-                          <app.icon className="w-5 h-5 text-gray-600" />
-                        </div>
-                        <div className="flex w-full justify-between items-center">
-                          <div>
-                            <h3 className="font-semibold text-sm">{app.name}</h3>
-                            <p className="text-xs text-gray-500">{app.category}</p>
-                          </div>
-                          <Button size="sm" className={cn(`transition-colors ${
-                                !configuredApps[app.name]
-                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                  : installedApps[app.name]
-                                  ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                  : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                            }`, !configuredApps[app.name] && "cursor-not-allowed")}
-                            disabled={!configuredApps[app.name]} onClick={(e) => {
-                              e.stopPropagation();
-                              handleGetClick(app.name);
-                            }} variant="secondary">
-                            {installedApps[app.name] ? "Uninstall" : "Get"}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </DrawerTrigger>
-                <DrawerContent className="h-[99%] px-4">
-                  <DrawerTitle>{app.name}</DrawerTitle> 
-                  <p className="text-sm text-gray-500">{app.description}</p>
-                </DrawerContent>
-              </Drawer>
+              <AppListItem
+                key={app.name}
+                app={app}
+                isConfigured={configuredApps[app.name]}
+                isInstalled={installedApps[app.name]}
+                onInstallationChange={(isInstalled) => handleInstallationChange(app.name, isInstalled)}
+              />
             ))}
           </div>
           <div className="flex items-center gap-4 absolute bottom-0 left-0 w-full px-8 py-1 border-t border-gray-100">
