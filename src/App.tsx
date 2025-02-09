@@ -1,5 +1,7 @@
 import './App.css';
+import { useState } from 'react';
 import { Calendar, ChevronRight, Chrome, HardDrive, Mail, Search, Youtube } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
 import { Separator } from '@radix-ui/react-separator';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@radix-ui/react-hover-card';
 
@@ -47,6 +49,27 @@ const apps = [
 ];
 
 function App() {
+  const [uvVersion, setUvVersion] = useState<string | null>(null);
+  const [bunVersion, setBunVersion] = useState<string | null>(null);
+
+  const checkUvVersion = async () => {
+    try {
+      const version = await invoke('check_uv_version');
+      setUvVersion(version as string);
+    } catch (error) {
+      setUvVersion(error as string);
+    }
+  };
+
+  const checkBunVersion = async () => {
+    try {
+      const version = await invoke('check_bun_version');
+      setBunVersion(version as string);
+    } catch (error) {
+      setBunVersion(error as string);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 bg-white border-b border-gray-200 z-10">
@@ -54,6 +77,30 @@ function App() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Mac App Store</h1>
             <div className="flex items-center space-x-4">
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <button
+                    onClick={checkUvVersion}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Check UV
+                  </button>
+                  {uvVersion && (
+                    <span className="text-sm mt-1">{uvVersion}</span>
+                  )}
+                </div>
+                <div className="flex flex-col items-center">
+                  <button
+                    onClick={checkBunVersion}
+                    className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                  >
+                    Check Bun
+                  </button>
+                  {bunVersion && (
+                    <span className="text-sm mt-1">{bunVersion}</span>
+                  )}
+                </div>
+              </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
