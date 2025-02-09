@@ -142,8 +142,11 @@ function App() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <section>
+      <main className="container mx-auto px-4 py-4">
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center justify-start">
+            <h2 className="text-xl font-bold text-gray-900">Popular Apps</h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {apps.map((app) => (
               <AppListItem
