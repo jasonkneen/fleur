@@ -18,12 +18,13 @@ fn get_npx_shim_path() -> std::path::PathBuf {
 }
 
 fn get_nvm_node_paths() -> Result<(String, String), String> {
+    // First ensure we're using the right node version
     let shell_command = r#"
         export NVM_DIR="$HOME/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
         nvm use v20.9.0 > /dev/null 2>&1
-        echo "$NVM_DIR/versions/node/v20.9.0/bin/node"
-        echo "$NVM_DIR/versions/node/v20.9.0/bin/npx"
+        which node
+        which npx
     "#;
 
     let output = Command::new("bash")
@@ -50,6 +51,11 @@ fn get_nvm_node_paths() -> Result<(String, String), String> {
         .ok_or("Failed to get npx path")?
         .trim()
         .to_string();
+
+    // Verify these are nvm paths
+    if !node_path.contains(".nvm/versions/node") {
+        return Err("Node path is not from nvm installation".to_string());
+    }
 
     Ok((node_path, npx_path))
 }
