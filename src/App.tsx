@@ -1,11 +1,19 @@
-import "./App.css";
-import { useEffect, useState } from "react";
-import { Calendar, Chrome, HardDrive, Mail, Search, Youtube } from "lucide-react";
+import './App.css';
+import { Calendar, Chrome, HardDrive, Mail, Search, Youtube } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from './components/ui/input';
 import { invoke } from "@tauri-apps/api/core";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "./components/ui/label";
-import { Input } from "./components/ui/input";
+import { useEffect, useState } from 'react';
+import { Label } from './components/ui/label';
+import { cn } from './lib/utils';
+import { toast } from 'sonner';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
 
 const apps = [
   {
@@ -95,6 +103,7 @@ function App() {
         appName,
       });
       setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
+      toast.success(`${appName} ${!isInstalled ? "uninstalled" : "installed"}`);
     } catch (error) {
       console.error("Failed to handle app action:", error);
     }
@@ -123,7 +132,10 @@ function App() {
       <header className="sticky top-0 bg-white border-b border-gray-200 z-10">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold">Fleur</h1>
+            <div className="flex items-center space-x-1">
+              <img src="/logo.svg" alt="Fleur" width={24} height={24} />
+              <h1 className="text-xl font-bold">Fleur</h1>
+            </div>
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -142,40 +154,47 @@ function App() {
         <section>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {apps.map((app) => (
-              <Card
-                key={app.name}
-                className="rounded-md border-gray-100 shadow-none">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between space-x-4">
-                    <div className="p-2 rounded-lg bg-gray-50">
-                      <app.icon className="w-5 h-5 text-gray-600" />
-                    </div>
-                    <div className="flex w-full justify-between items-center">
-                      <div>
-                        <h3 className="font-semibold text-sm">{app.name}</h3>
-                        <p className="text-xs text-gray-500">{app.category}</p>
+              <Drawer>
+                <DrawerTrigger asChild onClick={(e) => {
+                  e.stopPropagation();
+                }}>
+                  <Card key={app.name} className="rounded-md border-gray-100 shadow-none cursor-pointer hover:shadow-sm transition-all duration-300">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between space-x-4">
+                        <div className="p-2 rounded-lg bg-gray-50">
+                          <app.icon className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div className="flex w-full justify-between items-center">
+                          <div>
+                            <h3 className="font-semibold text-sm">{app.name}</h3>
+                            <p className="text-xs text-gray-500">{app.category}</p>
+                          </div>
+                          <Button size="sm" className={cn(`transition-colors ${
+                                !configuredApps[app.name]
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : installedApps[app.name]
+                                  ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                  : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                            }`, !configuredApps[app.name] && "cursor-not-allowed")}
+                            disabled={!configuredApps[app.name]} onClick={(e) => {
+                              e.stopPropagation();
+                              handleGetClick(app.name);
+                            }} variant="secondary">
+                            {installedApps[app.name] ? "Uninstall" : "Get"}
+                          </Button>
+                        </div>
                       </div>
-                      <Button
-                        size="sm"
-                        className={`transition-colors ${
-                          !configuredApps[app.name]
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : installedApps[app.name]
-                            ? "bg-red-50 text-red-600 hover:bg-red-100"
-                            : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                        }`}
-                        disabled={!configuredApps[app.name]}
-                        onClick={() => handleGetClick(app.name)}
-                        variant="secondary">
-                        {installedApps[app.name] ? "Uninstall" : "Get"}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </DrawerTrigger>
+                <DrawerContent className="h-[99%] px-4">
+                  <DrawerTitle>{app.name}</DrawerTitle> 
+                  <p className="text-sm text-gray-500">{app.description}</p>
+                </DrawerContent>
+              </Drawer>
             ))}
           </div>
-          <div className="flex items-center gap-4 absolute bottom-0 left-0 w-full px-4 py-1 border-t border-gray-200">
+          <div className="flex items-center gap-4 absolute bottom-0 left-0 w-full px-8 py-1 border-t border-gray-100">
             <div className="flex items-center">
               <Label className="text-xs">UV version</Label>
               {uvVersion ? (
