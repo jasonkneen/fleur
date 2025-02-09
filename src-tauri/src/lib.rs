@@ -4,46 +4,57 @@ use std::fs;
 use serde_json::{Value, json};
 
 // App configurations
+#[derive(Clone)]
 struct AppConfig {
-    mcp_key: &'static str,
-    command: &'static str,
-    args: &'static [&'static str],
+    mcp_key: String,
+    command: String,
+    args: Vec<String>,
 }
 
-const APP_CONFIGS: &[(&str, AppConfig)] = &[
-    ("Browser", AppConfig {
-        mcp_key: "puppeteer",
-        command: "/Users/vinayak/.bun/bin/bun",
-        args: &["x", "@modelcontextprotocol/server-puppeteer", "--debug"],
-    }),
-    ("Gmail", AppConfig {
-        mcp_key: "gmail",
-        command: "",
-        args: &[],
-    }),
-    ("Google Calendar", AppConfig {
-        mcp_key: "calendar",
-        command: "",
-        args: &[],
-    }),
-    ("Google Drive", AppConfig {
-        mcp_key: "drive",
-        command: "",
-        args: &[],
-    }),
-    ("YouTube", AppConfig {
-        mcp_key: "youtube",
-        command: "",
-        args: &[],
-    }),
-];
+fn get_bun_path() -> String {
+    dirs::home_dir()
+        .map(|path| path.join(".bun/bin/bun").to_string_lossy().to_string())
+        .unwrap_or_else(|| "bun".to_string())
+}
+
+fn get_app_configs() -> Vec<(String, AppConfig)> {
+    let bun_path = get_bun_path();
+
+    vec![
+        ("Browser".to_string(), AppConfig {
+            mcp_key: "puppeteer".to_string(),
+            command: bun_path,
+            args: vec!["x".to_string(), "@modelcontextprotocol/server-puppeteer".to_string(), "--debug".to_string()],
+        }),
+        ("Gmail".to_string(), AppConfig {
+            mcp_key: "gmail".to_string(),
+            command: String::new(),
+            args: vec![],
+        }),
+        ("Google Calendar".to_string(), AppConfig {
+            mcp_key: "calendar".to_string(),
+            command: String::new(),
+            args: vec![],
+        }),
+        ("Google Drive".to_string(), AppConfig {
+            mcp_key: "drive".to_string(),
+            command: String::new(),
+            args: vec![],
+        }),
+        ("YouTube".to_string(), AppConfig {
+            mcp_key: "youtube".to_string(),
+            command: String::new(),
+            args: vec![],
+        }),
+    ]
+}
 
 #[tauri::command]
 fn handle_app_get(app_name: &str) -> Result<String, String> {
     println!("Installing app: {}", app_name);
 
     // Find the app configuration
-    if let Some((_, config)) = APP_CONFIGS.iter().find(|(name, _)| *name == app_name) {
+    if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
         // Path to Claude config
         let config_path = dirs::home_dir()
             .ok_or("Could not find home directory".to_string())?
@@ -60,13 +71,13 @@ fn handle_app_get(app_name: &str) -> Result<String, String> {
         // Add puppeteer config to mcpServers if it doesn't exist
         if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
             // Check if the key already exists
-            if mcp_servers.contains_key(config.mcp_key) {
+            if mcp_servers.contains_key(&config.mcp_key) {
                 return Ok(format!("Configuration for {} already exists", app_name));
             }
 
             // Add new configuration
             mcp_servers.insert(
-                config.mcp_key.to_string(),
+                config.mcp_key.clone(),
                 json!({
                     "command": config.command,
                     "args": config.args,
@@ -94,7 +105,7 @@ fn handle_app_uninstall(app_name: &str) -> Result<String, String> {
     println!("Uninstalling app: {}", app_name);
 
     // Find the app configuration
-    if let Some((_, config)) = APP_CONFIGS.iter().find(|(name, _)| *name == app_name) {
+    if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
         // Path to Claude config
         let config_path = dirs::home_dir()
             .ok_or("Could not find home directory".to_string())?
@@ -110,7 +121,7 @@ fn handle_app_uninstall(app_name: &str) -> Result<String, String> {
 
         // Remove config from mcpServers if it exists
         if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
-            if mcp_servers.remove(config.mcp_key).is_some() {
+            if mcp_servers.remove(&config.mcp_key).is_some() {
                 // Write updated config back to file
                 let updated_config = serde_json::to_string_pretty(&config_json)
                     .map_err(|e| format!("Failed to serialize config: {}", e))?;
@@ -165,9 +176,9 @@ fn greet(name: &str) -> String {
 
 #[tauri::command]
 fn is_app_configured(app_name: &str) -> bool {
-    APP_CONFIGS
+    get_app_configs()
         .iter()
-        .find(|(name, _)| *name == app_name)
+        .find(|(name, _)| name == app_name)
         .map(|(_, config)| !config.command.is_empty())
         .unwrap_or(false)
 }
@@ -175,7 +186,7 @@ fn is_app_configured(app_name: &str) -> bool {
 #[tauri::command]
 fn is_app_installed(app_name: &str) -> Result<bool, String> {
     // Find the app configuration
-    if let Some((_, config)) = APP_CONFIGS.iter().find(|(name, _)| *name == app_name) {
+    if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
         // Path to Claude config
         let config_path = dirs::home_dir()
             .ok_or("Could not find home directory".to_string())?
@@ -191,7 +202,7 @@ fn is_app_installed(app_name: &str) -> Result<bool, String> {
 
         // Check if the app is in mcpServers
         if let Some(mcp_servers) = config_json.get("mcpServers").and_then(|v| v.as_object()) {
-            Ok(mcp_servers.contains_key(config.mcp_key))
+            Ok(mcp_servers.contains_key(&config.mcp_key))
         } else {
             Ok(false)
         }
