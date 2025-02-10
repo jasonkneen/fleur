@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { apps } from './lib/data';
+import { Loader } from './components/ui/loader';
 import { Input } from './components/ui/input';
 import {
   Breadcrumb,
@@ -17,6 +18,7 @@ import { AppDetail } from './components/app/AppDetail';
 import type { App } from "@/types/components/app";
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
   const [configuredApps, setConfiguredApps] = useState<{
     [key: string]: boolean;
   }>({});
@@ -49,6 +51,7 @@ function App() {
       }
       setConfiguredApps(configs);
       setInstalledApps(installed);
+      setIsLoading(false);
     };
 
     initializeEnvironment();
@@ -68,6 +71,14 @@ function App() {
       setSelectedApp(app);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader className="text-gray-800" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
