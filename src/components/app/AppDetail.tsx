@@ -1,7 +1,6 @@
 import { App } from '@/types/components/app';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AppWhatsNew } from './AppWhatsNew';
-import { AppScreenshots } from './AppScreenshots';
 import { AppRatings } from './AppRatings';
 import { AppInformation } from './AppInformation';
 import { AppHeader } from './AppHeader';
@@ -24,9 +23,8 @@ export function AppDetail({ app, isConfigured, isInstalled, onInstallationChange
         onInstallationChange={onInstallationChange}
       />
 
-      <ScrollArea className="flex-1 px-8 h-full">
+      <ScrollArea className="flex-1 h-full">
         <div className="py-8 space-y-12 min-h-full">
-          <AppScreenshots />
           <AppDescription app={app} />
           <AppWhatsNew />
           <AppRatings />
