@@ -1,4 +1,4 @@
-import { HardDrive, Youtube } from 'lucide-react';
+import { HardDrive, Youtube } from "lucide-react";
 
 import type { App } from "@/types/components/app";
 
@@ -69,4 +69,4 @@ export const apps: App[] = [
     price: "Free",
     developer: "Google LLC",
   },
-] as const; 
+] as const;

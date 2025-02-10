@@ -1,22 +1,22 @@
-import { useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { apps } from '../lib/data';
-import { Loader } from '../components/ui/loader';
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { apps } from "../lib/data";
+import { Loader } from "../components/ui/loader";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from '../components/ui/breadcrumb';
-import { AppDetail } from '../components/app/AppDetail';
+} from "../components/ui/breadcrumb";
+import { AppDetail } from "../components/app/AppDetail";
 
-import type { App } from '@/types/components/app'
+import type { App } from "@/types/components/app";
 
-export const Route = createFileRoute('/app/$name')({
+export const Route = createFileRoute("/app/$name")({
   component: AppPage,
-})
+});
 
 interface AppStatuses {
   installed: Record<string, boolean>;
@@ -24,46 +24,46 @@ interface AppStatuses {
 }
 
 function AppPage() {
-  const { name } = Route.useParams()
-  const [app, setApp] = useState<App | null>(null)
-  const [isConfigured, setIsConfigured] = useState(false)
-  const [isInstalled, setIsInstalled] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const { name } = Route.useParams();
+  const [app, setApp] = useState<App | null>(null);
+  const [isConfigured, setIsConfigured] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const app = apps.find((a) => a.name === name)
+    const app = apps.find((a) => a.name === name);
     if (app) {
-      setApp(app)
+      setApp(app);
       // Check app status
       const checkStatus = async () => {
         try {
-          const statuses = await invoke<AppStatuses>('get_all_app_statuses')
-          setIsConfigured(statuses.configured[app.name] ?? false)
-          setIsInstalled(statuses.installed[app.name] ?? false)
+          const statuses = await invoke<AppStatuses>("get_app_statuses");
+          setIsConfigured(statuses.configured[app.name] ?? false);
+          setIsInstalled(statuses.installed[app.name] ?? false);
         } finally {
-          setIsLoading(false)
+          setIsLoading(false);
         }
-      }
-      checkStatus()
+      };
+      checkStatus();
     } else {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [name])
+  }, [name]);
 
   const handleInstallationChange = (isInstalled: boolean) => {
-    setIsInstalled(isInstalled)
-  }
+    setIsInstalled(isInstalled);
+  };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader />
       </div>
-    )
+    );
   }
 
   if (!app) {
-    return <div>App not found</div>
+    return <div>App not found</div>;
   }
 
   return (
@@ -90,5 +90,5 @@ function AppPage() {
         onInstallationChange={handleInstallationChange}
       />
     </div>
-  )
+  );
 }
