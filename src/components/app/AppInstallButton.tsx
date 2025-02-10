@@ -20,7 +20,7 @@ export function AppInstallButton({
       console.log(result);
 
       // Refresh installation status after action
-      const newIsInstalled = await invoke<boolean>("is_app_installed", {
+      const newIsInstalled = await invoke<boolean>("is_installed", {
         appName: app.name,
       });
       onInstallationChange(newIsInstalled);
