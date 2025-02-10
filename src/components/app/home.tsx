@@ -30,7 +30,7 @@ export function Home({
           <div
             key={app.name}
             onClick={() => onAppSelect(app)}
-            style={{ viewTransitionName: `app-card-${app.name}` }}>
+          >
             <Card className="border-transparent bg-transparent shadow-none">
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">

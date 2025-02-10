@@ -127,7 +127,7 @@ function App() {
       <main className="container mx-auto px-4 py-4">
         <div className="view-transition-wrapper">
           {selectedApp ? (
-            <div style={{ viewTransitionName: "app-detail" }}>
+            <div>
               <AppDetail
                 app={selectedApp}
                 isConfigured={configuredApps[selectedApp.name]}
