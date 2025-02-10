@@ -429,24 +429,33 @@ fn install_node() -> Result<(), String> {
 }
 
 fn check_nvm_installed() -> bool {
-    // First check if nvm is in PATH
-    let which_command = Command::new("which")
-        .arg("nvm")
-        .output()
-        .map_or(false, |output| output.status.success());
+    // Check if NVM directory exists
+    let nvm_dir = dirs::home_dir()
+        .map(|path| path.join(".nvm"))
+        .filter(|path| path.exists());
 
-    if !which_command {
+    if nvm_dir.is_none() {
         return false;
     }
 
-    // Then check if nvm --version works
-    let version_command = Command::new("bash")
+    // Try to source nvm and check its version
+    let shell_command = r#"
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm --version
+    "#;
+
+    let output = Command::new("bash")
         .arg("-c")
-        .arg("nvm --version")
+        .arg(shell_command)
         .output()
         .map_or(false, |output| output.status.success());
 
-    version_command
+    if output {
+        println!("nvm is already installed");
+    }
+
+    output
 }
 
 fn install_nvm() -> Result<(), String> {
