@@ -11,7 +11,7 @@ pub fn run() {
             app::uninstall,
             app::is_configured,
             app::is_installed,
-            app::get_all_app_statuses,
+            app::get_app_statuses,
             environment::ensure_environment,
             environment::ensure_node_environment,
         ])

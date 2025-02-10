@@ -204,7 +204,7 @@ pub fn is_installed(app_name: &str) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn get_all_app_statuses() -> Result<Value, String> {
+pub fn get_app_statuses() -> Result<Value, String> {
     let config_path = dirs::home_dir()
         .ok_or("Could not find home directory".to_string())?
         .join("Library/Application Support/Claude/claude_desktop_config.json");
