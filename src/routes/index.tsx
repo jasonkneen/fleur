@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { createFileRoute } from '@tanstack/react-router';
-import { apps } from '../lib/data';
 import { Loader } from '../components/ui/loader';
 import { Home } from '../components/app/home';
 
@@ -28,24 +27,24 @@ function Index() {
       }
     }
 
-    const checkAppStatuses = async () => {
-      const configs: { [key: string]: boolean } = {}
-      const installed: { [key: string]: boolean } = {}
-      for (const app of apps) {
-        configs[app.name] = await invoke('is_app_configured', {
-          appName: app.name,
-        })
-        installed[app.name] = await invoke('is_app_installed', {
-          appName: app.name,
-        })
+    const loadAppStatuses = async () => {
+      try {
+        const result = await invoke<{
+          installed: { [key: string]: boolean },
+          configured: { [key: string]: boolean }
+        }>('get_all_app_statuses')
+        
+        setConfiguredApps(result.configured)
+        setInstalledApps(result.installed)
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Failed to load app statuses:', error)
+        setIsLoading(false)
       }
-      setConfiguredApps(configs)
-      setInstalledApps(installed)
-      setIsLoading(false)
     }
 
     initializeEnvironment()
-    checkAppStatuses()
+    loadAppStatuses()
   }, [])
 
   const handleInstallationChange = (appName: string, isInstalled: boolean) => {

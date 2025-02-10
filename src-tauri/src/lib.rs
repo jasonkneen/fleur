@@ -568,6 +568,41 @@ fn ensure_environment() -> Result<String, String> {
     Ok("Environment is ready".to_string())
 }
 
+#[tauri::command]
+fn get_all_app_statuses() -> Result<Value, String> {
+    // Path to Claude config
+    let config_path = dirs::home_dir()
+        .ok_or("Could not find home directory".to_string())?
+        .join("Library/Application Support/Claude/claude_desktop_config.json");
+
+    // Read existing config
+    let config_str = fs::read_to_string(&config_path)
+        .map_err(|e| format!("Failed to read config file: {}", e))?;
+
+    // Parse JSON
+    let config_json: Value = serde_json::from_str(&config_str)
+        .map_err(|e| format!("Failed to parse config JSON: {}", e))?;
+
+    let mut installed_apps = json!({});
+    let mut configured_apps = json!({});
+
+    // Get all app configs
+    let app_configs = get_app_configs();
+
+    // Check installation status for all apps at once
+    if let Some(mcp_servers) = config_json.get("mcpServers").and_then(|v| v.as_object()) {
+        for (app_name, config) in app_configs {
+            installed_apps[&app_name] = json!(mcp_servers.contains_key(&config.mcp_key));
+            configured_apps[&app_name] = json!(!config.command.is_empty());
+        }
+    }
+
+    Ok(json!({
+        "installed": installed_apps,
+        "configured": configured_apps
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -578,7 +613,8 @@ pub fn run() {
             handle_app_uninstall,
             is_app_configured,
             is_app_installed,
-            ensure_environment
+            ensure_environment,
+            get_all_app_statuses
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
