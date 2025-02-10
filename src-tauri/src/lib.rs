@@ -9,7 +9,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app::install,
             app::uninstall,
-            app::is_configured,
             app::is_installed,
             app::get_app_statuses,
             environment::ensure_environment,

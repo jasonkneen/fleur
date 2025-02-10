@@ -170,15 +170,6 @@ pub fn uninstall(app_name: &str) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn is_configured(app_name: &str) -> bool {
-    get_app_configs()
-        .iter()
-        .find(|(name, _)| name == app_name)
-        .map(|(_, config)| !config.command.is_empty())
-        .unwrap_or(false)
-}
-
-#[tauri::command]
 pub fn is_installed(app_name: &str) -> Result<bool, String> {
     if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
         let config_path = dirs::home_dir()
