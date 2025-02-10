@@ -1,40 +1,51 @@
-import './app.css';
-import { useEffect, useState } from 'react';
-import { Chrome, HardDrive, Search, Youtube } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
-import { Input } from './components/ui/input';
-import { Card, CardContent } from './components/ui/card';
+import "./app.css";
+import { useEffect, useState } from "react";
+import { Chrome, HardDrive, Search, Youtube } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { Input } from "./components/ui/input";
+import { Card, CardContent } from "./components/ui/card";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from './components/ui/breadcrumb';
-import { AppInstallButton } from './components/app/AppInstallButton';
-import { AppIcon } from './components/app/AppIcon';
-import { AppDetail } from './components/app/AppDetail';
+} from "./components/ui/breadcrumb";
+import { AppInstallButton } from "./components/app/AppInstallButton";
+import { AppIcon } from "./components/app/AppIcon";
+import { AppDetail } from "./components/app/AppDetail";
 
-import type { App } from '@/types/components/app';
+import type { App } from "@/types/components/app";
 
 const apps: App[] = [
   {
     name: "Browser",
     description: "Web browser",
     icon: {
-      type: 'lucide',
-      icon: Chrome
+      type: "lucide",
+      icon: Chrome,
     },
     category: "Utilities",
     price: "Get",
     developer: "Google LLC",
   },
   {
+    name: "Hacker News",
+    description: "Hacker News",
+    icon: {
+      type: "url",
+      url: `/servers/yc.svg`,
+    },
+    category: "Social",
+    price: "Get",
+    developer: "Y Combinator",
+  },
+  {
     name: "Gmail",
     description: "Email and messaging platform",
     icon: {
-      type: 'url',
-      url: `/servers/gmail.svg`
+      type: "url",
+      url: `/servers/gmail.svg`,
     },
     category: "Productivity",
     price: "Free",
@@ -44,8 +55,8 @@ const apps: App[] = [
     name: "Google Calendar",
     description: "Schedule and organize events",
     icon: {
-      type: 'url',
-      url: `/servers/gcal.svg`
+      type: "url",
+      url: `/servers/gcal.svg`,
     },
     category: "Productivity",
     price: "Free",
@@ -55,8 +66,8 @@ const apps: App[] = [
     name: "Google Drive",
     description: "Cloud storage and file sharing",
     icon: {
-      type: 'lucide',
-      icon: HardDrive
+      type: "lucide",
+      icon: HardDrive,
     },
     category: "Productivity",
     price: "Free",
@@ -66,8 +77,8 @@ const apps: App[] = [
     name: "YouTube",
     description: "Video streaming platform",
     icon: {
-      type: 'lucide',
-      icon: Youtube
+      type: "lucide",
+      icon: Youtube,
     },
     category: "Entertainment",
     price: "Free",
@@ -88,10 +99,10 @@ function App() {
   useEffect(() => {
     const initializeEnvironment = async () => {
       try {
-        const result = await invoke("ensure_node_environment");
+        const result = await invoke("ensure_environment");
         console.log(result);
       } catch (error) {
-        console.error("Failed to initialize Node.js environment:", error);
+        console.error("Failed to initialize environment:", error);
       }
     };
 
@@ -116,7 +127,6 @@ function App() {
 
   const handleInstallationChange = (appName: string, isInstalled: boolean) => {
     setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
-
   };
 
   return (
@@ -146,7 +156,9 @@ function App() {
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem>
-                    <BreadcrumbLink onClick={() => setSelectedApp(null)} className="cursor-pointer">
+                    <BreadcrumbLink
+                      onClick={() => setSelectedApp(null)}
+                      className="cursor-pointer">
                       Apps
                     </BreadcrumbLink>
                   </BreadcrumbItem>
@@ -164,18 +176,22 @@ function App() {
       <main className="container mx-auto px-4 py-4">
         <div className="view-transition-wrapper">
           {selectedApp ? (
-            <div style={{ viewTransitionName: 'app-detail' }}>
+            <div style={{ viewTransitionName: "app-detail" }}>
               <AppDetail
                 app={selectedApp}
                 isConfigured={configuredApps[selectedApp.name]}
                 isInstalled={installedApps[selectedApp.name]}
-                onInstallationChange={(isInstalled) => handleInstallationChange(selectedApp.name, isInstalled)}
+                onInstallationChange={(isInstalled) =>
+                  handleInstallationChange(selectedApp.name, isInstalled)
+                }
               />
             </div>
           ) : (
             <section className="flex flex-col gap-4">
               <div className="flex items-center justify-start">
-                <h2 className="text-xl font-bold text-gray-900">Popular Apps</h2>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Popular Apps
+                </h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
                 {apps.map((app) => (
@@ -190,8 +206,7 @@ function App() {
                         setSelectedApp(app);
                       }
                     }}
-                    style={{ viewTransitionName: `app-card-${app.name}` }}
-                  >
+                    style={{ viewTransitionName: `app-card-${app.name}` }}>
                     <Card className="border-transparent bg-transparent shadow-none">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
@@ -199,14 +214,20 @@ function App() {
                             <AppIcon app={app} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-base text-gray-900">{app.name}</h3>
-                            <p className="text-sm text-gray-500">{app.category}</p>
+                            <h3 className="font-semibold text-base text-gray-900">
+                              {app.name}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              {app.category}
+                            </p>
                           </div>
                           <AppInstallButton
                             app={app}
                             isConfigured={configuredApps[app.name]}
                             isInstalled={installedApps[app.name]}
-                            onInstallationChange={(isInstalled) => handleInstallationChange(app.name, isInstalled)}
+                            onInstallationChange={(isInstalled) =>
+                              handleInstallationChange(app.name, isInstalled)
+                            }
                           />
                         </div>
                       </CardContent>

@@ -17,6 +17,19 @@ fn get_npx_shim_path() -> std::path::PathBuf {
         .join(".local/share/fleur/bin/npx-fleur")
 }
 
+fn get_uvx_path() -> Result<String, String> {
+    let output = Command::new("which")
+        .arg("uvx")
+        .output()
+        .map_err(|e| format!("Failed to get uvx path: {}", e))?;
+
+    if !output.status.success() {
+        return Err("uvx not found in PATH".to_string());
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
 fn get_nvm_node_paths() -> Result<(String, String), String> {
     // First ensure we're using the right node version
     let shell_command = r#"
@@ -103,6 +116,7 @@ exec "$NPX" "$@"
 
 fn get_app_configs() -> Vec<(String, AppConfig)> {
     let npx_shim = ensure_npx_shim().unwrap_or_else(|_| "npx".to_string());
+    let uvx_path = get_uvx_path().unwrap_or_else(|_| "uvx".to_string());
 
     vec![
         (
@@ -114,6 +128,18 @@ fn get_app_configs() -> Vec<(String, AppConfig)> {
                     "-y".to_string(),
                     "@modelcontextprotocol/server-puppeteer".to_string(),
                     "--debug".to_string(),
+                ],
+            },
+        ),
+        (
+            "Hacker News".to_string(),
+            AppConfig {
+                mcp_key: "hn".to_string(),
+                command: uvx_path.clone(),
+                args: vec![
+                    "--from".to_string(),
+                    "git+https://github.com/erithwik/mcp-hn".to_string(),
+                    "mcp-hn".to_string(),
                 ],
             },
         ),
@@ -447,6 +473,54 @@ fn install_nvm() -> Result<(), String> {
     Ok(())
 }
 
+fn check_uv_installed() -> bool {
+    // Check if uv is in PATH
+    let which_command = Command::new("which")
+        .arg("uv")
+        .output()
+        .map_or(false, |output| output.status.success());
+
+    if !which_command {
+        return false;
+    }
+
+    // Then check if uv --version works
+    let version_command = Command::new("uv")
+        .arg("--version")
+        .output()
+        .map_or(false, |output| output.status.success());
+
+    if version_command {
+        println!("uv is installed");
+    }
+
+    version_command
+}
+
+fn install_uv() -> Result<(), String> {
+    println!("Installing uv...");
+
+    let shell_command = r#"
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    "#;
+
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg(shell_command)
+        .output()
+        .map_err(|e| format!("Failed to install uv: {}", e))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "uv installation failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    println!("uv installed successfully");
+    Ok(())
+}
+
 #[tauri::command]
 fn ensure_node_environment() -> Result<String, String> {
     // First ensure nvm is installed
@@ -472,6 +546,19 @@ fn ensure_node_environment() -> Result<String, String> {
     }
 }
 
+#[tauri::command]
+fn ensure_environment() -> Result<String, String> {
+    // First ensure UV is installed
+    if !check_uv_installed() {
+        install_uv()?;
+    }
+
+    // Then ensure Node environment is ready
+    ensure_node_environment()?;
+
+    Ok("Environment is ready".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -482,7 +569,7 @@ pub fn run() {
             handle_app_uninstall,
             is_app_configured,
             is_app_installed,
-            ensure_node_environment
+            ensure_environment
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
