@@ -40,7 +40,38 @@ pub fn get_app_configs() -> Vec<(String, AppConfig)> {
                 ],
             },
         ),
-        // ... other app configs ...
+        (
+          "Gmail".to_string(),
+          AppConfig {
+              mcp_key: "gmail".to_string(),
+              command: String::new(),
+              args: vec![],
+          },
+      ),
+      (
+          "Google Calendar".to_string(),
+          AppConfig {
+              mcp_key: "calendar".to_string(),
+              command: String::new(),
+              args: vec![],
+          },
+      ),
+      (
+          "Google Drive".to_string(),
+          AppConfig {
+              mcp_key: "drive".to_string(),
+              command: String::new(),
+              args: vec![],
+          },
+      ),
+      (
+          "YouTube".to_string(),
+          AppConfig {
+              mcp_key: "youtube".to_string(),
+              command: String::new(),
+              args: vec![],
+          },
+      ),
     ]
 }
 
