@@ -13,7 +13,6 @@ pub fn run() {
             app::is_installed,
             app::get_app_statuses,
             environment::ensure_environment,
-            environment::ensure_node_environment,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -252,8 +252,7 @@ fn install_uv() -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
-pub fn ensure_node_environment() -> Result<String, String> {
+fn ensure_node_environment() -> Result<String, String> {
     if !check_nvm_installed() {
         install_nvm()?;
     }
