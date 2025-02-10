@@ -7,18 +7,6 @@ interface LoaderProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Loader({ size = 72, className, ...props }: LoaderProps) {
   return (
     <>
-      <style>
-        {`
-          @keyframes draw {
-            0% {
-              stroke-dashoffset: 1600;
-            }
-            100% {
-              stroke-dashoffset: 0;
-            }
-          }
-        `}
-      </style>
       <div className={cn(className)} {...props}>
         <svg
           width={size}
