@@ -45,7 +45,7 @@ pub fn get_app_configs() -> Vec<(String, AppConfig)> {
 }
 
 #[tauri::command]
-pub fn handle_app_get(app_name: &str) -> Result<String, String> {
+pub fn install(app_name: &str) -> Result<String, String> {
     println!("Installing app: {}", app_name);
 
     if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
@@ -63,7 +63,10 @@ pub fn handle_app_get(app_name: &str) -> Result<String, String> {
 
         ensure_mcp_servers(&mut config_json)?;
 
-        if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
+        if let Some(mcp_servers) = config_json
+            .get_mut("mcpServers")
+            .and_then(|v| v.as_object_mut())
+        {
             if mcp_servers.contains_key(&config.mcp_key) {
                 return Ok(format!("Configuration for {} already exists", app_name));
             }
@@ -82,7 +85,10 @@ pub fn handle_app_get(app_name: &str) -> Result<String, String> {
             fs::write(&config_path, updated_config)
                 .map_err(|e| format!("Failed to write config file: {}", e))?;
 
-            Ok(format!("Added {} configuration for {}", config.mcp_key, app_name))
+            Ok(format!(
+                "Added {} configuration for {}",
+                config.mcp_key, app_name
+            ))
         } else {
             Err("Failed to find mcpServers in config".to_string())
         }
@@ -92,7 +98,7 @@ pub fn handle_app_get(app_name: &str) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn handle_app_uninstall(app_name: &str) -> Result<String, String> {
+pub fn uninstall(app_name: &str) -> Result<String, String> {
     println!("Uninstalling app: {}", app_name);
 
     if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
@@ -106,7 +112,10 @@ pub fn handle_app_uninstall(app_name: &str) -> Result<String, String> {
         let mut config_json: Value = serde_json::from_str(&config_str)
             .map_err(|e| format!("Failed to parse config JSON: {}", e))?;
 
-        if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
+        if let Some(mcp_servers) = config_json
+            .get_mut("mcpServers")
+            .and_then(|v| v.as_object_mut())
+        {
             if mcp_servers.remove(&config.mcp_key).is_some() {
                 let updated_config = serde_json::to_string_pretty(&config_json)
                     .map_err(|e| format!("Failed to serialize config: {}", e))?;
@@ -114,7 +123,10 @@ pub fn handle_app_uninstall(app_name: &str) -> Result<String, String> {
                 fs::write(&config_path, updated_config)
                     .map_err(|e| format!("Failed to write config file: {}", e))?;
 
-                Ok(format!("Removed {} configuration for {}", config.mcp_key, app_name))
+                Ok(format!(
+                    "Removed {} configuration for {}",
+                    config.mcp_key, app_name
+                ))
             } else {
                 Ok(format!("Configuration for {} was not found", app_name))
             }
@@ -127,7 +139,7 @@ pub fn handle_app_uninstall(app_name: &str) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn is_app_configured(app_name: &str) -> bool {
+pub fn is_configured(app_name: &str) -> bool {
     get_app_configs()
         .iter()
         .find(|(name, _)| name == app_name)
@@ -136,7 +148,7 @@ pub fn is_app_configured(app_name: &str) -> bool {
 }
 
 #[tauri::command]
-pub fn is_app_installed(app_name: &str) -> Result<bool, String> {
+pub fn is_installed(app_name: &str) -> Result<bool, String> {
     if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
         let config_path = dirs::home_dir()
             .ok_or("Could not find home directory".to_string())?
