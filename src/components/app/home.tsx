@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { apps } from '@/lib/data';
 import { Card, CardContent } from '@/components/ui/card';
 import { AppInstallButton } from './AppInstallButton';
@@ -27,9 +28,19 @@ export function Home({
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
         {apps.map((app) => (
-          <div
+          <Link
             key={app.name}
-            onClick={() => onAppSelect(app)}
+            to="/app/$name"
+            params={{ name: app.name }}
+            onClick={() => {
+              if (document.startViewTransition) {
+                document.startViewTransition(() => {
+                  onAppSelect(app);
+                });
+              } else {
+                onAppSelect(app);
+              }
+            }}
           >
             <Card className="border-transparent bg-transparent shadow-none">
               <CardContent className="p-4">
@@ -56,7 +67,7 @@ export function Home({
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </Link>
         ))}
       </div>
     </section>
