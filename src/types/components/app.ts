@@ -3,6 +3,7 @@ import { LucideIcon } from 'lucide-react';
 export interface App {
   name: string;
   description: string;
+  stars: number;
   icon: {
     type: 'url' | 'lucide';
     url?: string;

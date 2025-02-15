@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { apps } from "../lib/data";
-import { Loader } from "../components/ui/loader";
+import { useEffect, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { apps } from '../lib/data';
+import { Loader } from '../components/ui/loader';
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from "../components/ui/breadcrumb";
-import { AppDetail } from "../components/app/AppDetail";
+} from '../components/ui/breadcrumb';
+import { AppDetail } from '../components/app/AppDetail';
 
 import type { App } from "@/types/components/app";
 
@@ -78,7 +78,7 @@ function AppPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <span className="text-gray-900">{app.name}</span>
+              <span className="text-zinc-900 dark:text-zinc-100">{app.name}</span>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>

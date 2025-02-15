@@ -16,7 +16,7 @@ export function AppHeader({ app, isConfigured, isInstalled, onInstallationChange
       <div className="px-8 pt-8 pb-6">
         <div className="flex gap-6">
           {/* App Icon */}
-          <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden bg-gray-50 shadow-sm">
+          <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden bg-gray-50 dark:bg-gray-800 shadow-sm">
             <AppIcon app={app} />
           </div>
           
@@ -24,10 +24,10 @@ export function AppHeader({ app, isConfigured, isInstalled, onInstallationChange
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-[2rem] font-semibold leading-tight text-gray-900 mb-1">
+                <h1 className="text-[2rem] font-semibold leading-tight text-gray-900 dark:text-gray-100 mb-1">
                   {app.name}
                 </h1>
-                <p className="text-sm text-gray-500">{app.category}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{app.category}</p>
               </div>
               <div className="ml-6">
                 <AppInstallButton
@@ -38,16 +38,9 @@ export function AppHeader({ app, isConfigured, isInstalled, onInstallationChange
                 />
               </div>
             </div>
-            
-            {/* Rating */}
             <div className="mt-6 flex items-center gap-4">
-              <div className="flex items-center">
-                <span className="text-3xl font-medium text-gray-900">4.5</span>
-                <span className="ml-1 text-sm text-gray-500">out of 5</span>
-              </div>
-              <Separator orientation="vertical" className="h-6" />
-              <div className="text-sm text-gray-500">
-                6.9K Ratings
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {app.stars} Stars
               </div>
             </div>
           </div>

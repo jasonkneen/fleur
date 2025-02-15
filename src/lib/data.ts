@@ -1,4 +1,4 @@
-import { HardDrive, Youtube } from "lucide-react";
+import { HardDrive, Youtube } from 'lucide-react';
 
 import type { App } from "@/types/components/app";
 
@@ -6,6 +6,7 @@ export const apps: App[] = [
   {
     name: "Browser",
     description: "Web browser",
+    stars: 1000,
     icon: {
       type: "url",
       url: `/servers/browser.svg`,
@@ -17,6 +18,7 @@ export const apps: App[] = [
   {
     name: "Hacker News",
     description: "Hacker News",
+    stars: 1000,
     icon: {
       type: "url",
       url: `/servers/yc.svg`,
@@ -28,6 +30,7 @@ export const apps: App[] = [
   {
     name: "Gmail",
     description: "Email and messaging platform",
+    stars: 1000,
     icon: {
       type: "url",
       url: `/servers/gmail.svg`,
@@ -39,6 +42,7 @@ export const apps: App[] = [
   {
     name: "Google Calendar",
     description: "Schedule and organize events",
+    stars: 1000,
     icon: {
       type: "url",
       url: `/servers/gcal.svg`,
@@ -50,6 +54,7 @@ export const apps: App[] = [
   {
     name: "Google Drive",
     description: "Cloud storage and file sharing",
+    stars: 1000,
     icon: {
       type: "lucide",
       icon: HardDrive,
@@ -61,6 +66,7 @@ export const apps: App[] = [
   {
     name: "YouTube",
     description: "Video streaming platform",
+    stars: 1000,
     icon: {
       type: "lucide",
       icon: Youtube,
