@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { useStore } from '@tanstack/react-store';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { appStore, loadAppStatuses, updateAppInstallation } from '@/store/app';
 import { apps } from '../lib/data';
 import { Loader } from '../components/ui/loader';
 import {
@@ -18,52 +19,38 @@ export const Route = createFileRoute("/app/$name")({
   component: AppPage,
 });
 
-interface AppStatuses {
-  installed: Record<string, boolean>;
-  configured: Record<string, boolean>;
-}
-
 function AppPage() {
   const { name } = Route.useParams();
   const [app, setApp] = useState<App | null>(null);
-  const [isConfigured, setIsConfigured] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const appStatuses = useStore(appStore, (state) => state.appStatuses);
+  const isLoadingStatuses = useStore(appStore, (state) => state.isLoadingStatuses);
 
   useEffect(() => {
     const app = apps.find((a) => a.name === name);
     if (app) {
       setApp(app);
-      // Check app status
-      const checkStatus = async () => {
-        try {
-          const statuses = await invoke<AppStatuses>("get_app_statuses");
-          setIsConfigured(statuses.configured[app.name] ?? false);
-          setIsInstalled(statuses.installed[app.name] ?? false);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      checkStatus();
-    } else {
-      setIsLoading(false);
+      if (!appStatuses?.installed?.[app.name] && !appStatuses?.configured?.[app.name]) {
+        loadAppStatuses();
+      }
     }
-  }, [name]);
+  }, [name, appStatuses?.installed, appStatuses?.configured]);
 
   const handleInstallationChange = (isInstalled: boolean) => {
-    setIsInstalled(isInstalled);
+    if (app) {
+      updateAppInstallation(app.name, isInstalled);
+    }
   };
 
-  if (isLoading) {
+  if (isLoadingStatuses || !appStatuses) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader />
+        <Loader className="text-gray-800 dark:text-gray-200" />
       </div>
     );
   }
 
   if (!app) {
-    return <div>App not found</div>;
+    return <div className="text-gray-900 dark:text-gray-100">App not found</div>;
   }
 
   return (
@@ -85,8 +72,8 @@ function AppPage() {
       </div>
       <AppDetail
         app={app}
-        isConfigured={isConfigured}
-        isInstalled={isInstalled}
+        isConfigured={appStatuses.configured[app.name] ?? false}
+        isInstalled={appStatuses.installed[app.name] ?? false}
         onInstallationChange={handleInstallationChange}
       />
     </div>

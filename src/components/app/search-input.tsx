@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react';
 import { useStore } from '@tanstack/react-store';
-import { appStore } from '@/store/search';
+import { appStore } from '@/store/app';
 import { Input } from '@/components/ui/input';
 
 export const SearchInput = () => {

@@ -1,68 +1,55 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { createFileRoute } from "@tanstack/react-router";
-import { Loader } from "../components/ui/loader";
-import { Home } from "../components/app/home";
+import { useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { useStore } from '@tanstack/react-store';
+import { createFileRoute } from '@tanstack/react-router';
+import { appStore, loadAppStatuses, updateAppInstallation } from '@/store/app';
+import { Loader } from '../components/ui/loader';
+import { Home } from '../components/app/home';
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
 function Index() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [configuredApps, setConfiguredApps] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const [installedApps, setInstalledApps] = useState<{
-    [key: string]: boolean;
-  }>({});
+  const appStatuses = useStore(appStore, (state) => state.appStatuses);
+  const isLoadingStatuses = useStore(appStore, (state) => state.isLoadingStatuses);
+  const hasInitializedInstalledApps = useStore(appStore, (state) => state.hasInitializedInstalledApps);
 
   useEffect(() => {
     const initializeEnvironment = async () => {
+      if (hasInitializedInstalledApps) return;
+      
       try {
-        const result = await invoke("ensure_environment");
-        console.log(result);
+        await invoke("ensure_environment");
+        await loadAppStatuses();
+        appStore.setState((state) => ({
+          ...state,
+          hasInitializedInstalledApps: true,
+        }));
       } catch (error) {
         console.error("Failed to initialize environment:", error);
       }
     };
 
-    const loadAppStatuses = async () => {
-      try {
-        const result = await invoke<{
-          installed: { [key: string]: boolean };
-          configured: { [key: string]: boolean };
-        }>("get_app_statuses");
-
-        setConfiguredApps(result.configured);
-        setInstalledApps(result.installed);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Failed to load app statuses:", error);
-        setIsLoading(false);
-      }
-    };
-
     initializeEnvironment();
-    loadAppStatuses();
-  }, []);
+  }, [hasInitializedInstalledApps]);
 
   const handleInstallationChange = (appName: string, isInstalled: boolean) => {
-    setInstalledApps((prev) => ({ ...prev, [appName]: isInstalled }));
+    updateAppInstallation(appName, isInstalled);
   };
 
-  if (isLoading) {
+  if (isLoadingStatuses || !appStatuses) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader className="text-gray-800" size={48} />
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+        <Loader className="text-gray-800 dark:text-gray-200" size={48} />
       </div>
     );
   }
 
   return (
     <Home
-      configuredApps={configuredApps}
-      installedApps={installedApps}
+      configuredApps={appStatuses.configured ?? {}}
+      installedApps={appStatuses.installed ?? {}}
       onAppSelect={() => {}}
       onInstallationChange={handleInstallationChange}
     />
