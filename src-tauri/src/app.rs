@@ -29,6 +29,18 @@ pub fn get_app_configs() -> Vec<(String, AppConfig)> {
             },
         ),
         (
+            "Time".to_string(),
+            AppConfig {
+                mcp_key: "time".to_string(),
+                command: uvx_path.clone(),
+                args: vec![
+                    "--from".to_string(),
+                    "git+https://github.com/modelcontextprotocol/servers.git#subdirectory=src/time".to_string(),
+                    "mcp-server-time".to_string(),
+                ],
+            },
+        ),
+        (
             "Hacker News".to_string(),
             AppConfig {
                 mcp_key: "hn".to_string(),
