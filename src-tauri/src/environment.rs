@@ -1,5 +1,10 @@
 use std::fs;
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static UV_INSTALLED: AtomicBool = AtomicBool::new(false);
+static NVM_INSTALLED: AtomicBool = AtomicBool::new(false);
+static NODE_INSTALLED: AtomicBool = AtomicBool::new(false);
 
 pub fn get_npx_shim_path() -> std::path::PathBuf {
     dirs::home_dir()
@@ -64,6 +69,10 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
 pub fn ensure_npx_shim() -> Result<String, String> {
     let shim_path = get_npx_shim_path();
 
+    if shim_path.exists() {
+        return Ok(shim_path.to_string_lossy().to_string());
+    }
+
     let (node_path, npx_path) = get_nvm_node_paths()?;
 
     if let Some(parent) = shim_path.parent() {
@@ -98,6 +107,10 @@ exec "$NPX" "$@"
 }
 
 fn check_node_version() -> Result<String, String> {
+    if NODE_INSTALLED.load(Ordering::Relaxed) {
+        return Ok("v20.9.0".to_string());
+    }
+
     let which_command = Command::new("which")
         .arg("node")
         .output()
@@ -113,9 +126,15 @@ fn check_node_version() -> Result<String, String> {
         .map_err(|e| format!("Failed to check node version: {}", e))?;
 
     if version_command.status.success() {
-        Ok(String::from_utf8_lossy(&version_command.stdout)
+        let version = String::from_utf8_lossy(&version_command.stdout)
             .trim()
-            .to_string())
+            .to_string();
+
+        if version == "v20.9.0" {
+            NODE_INSTALLED.store(true, Ordering::Relaxed);
+        }
+
+        Ok(version)
     } else {
         Err("Failed to get Node version".to_string())
     }
@@ -150,11 +169,16 @@ fn install_node() -> Result<(), String> {
         ));
     }
 
+    NODE_INSTALLED.store(true, Ordering::Relaxed);
     println!("Node.js v20.9.0 installed successfully");
     Ok(())
 }
 
 fn check_nvm_installed() -> bool {
+    if NVM_INSTALLED.load(Ordering::Relaxed) {
+        return true;
+    }
+
     let nvm_dir = dirs::home_dir()
         .map(|path| path.join(".nvm"))
         .filter(|path| path.exists());
@@ -176,6 +200,7 @@ fn check_nvm_installed() -> bool {
         .map_or(false, |output| output.status.success());
 
     if output {
+        NVM_INSTALLED.store(true, Ordering::Relaxed);
         println!("nvm is already installed");
     }
 
@@ -202,11 +227,16 @@ fn install_nvm() -> Result<(), String> {
         ));
     }
 
+    NVM_INSTALLED.store(true, Ordering::Relaxed);
     println!("nvm installed successfully");
     Ok(())
 }
 
 fn check_uv_installed() -> bool {
+    if UV_INSTALLED.load(Ordering::Relaxed) {
+        return true;
+    }
+
     let which_command = Command::new("which")
         .arg("uv")
         .output()
@@ -222,6 +252,7 @@ fn check_uv_installed() -> bool {
         .map_or(false, |output| output.status.success());
 
     if version_command {
+        UV_INSTALLED.store(true, Ordering::Relaxed);
         println!("uv is installed");
     }
 
@@ -248,6 +279,7 @@ fn install_uv() -> Result<(), String> {
         ));
     }
 
+    UV_INSTALLED.store(true, Ordering::Relaxed);
     println!("uv installed successfully");
     Ok(())
 }
@@ -275,11 +307,12 @@ fn ensure_node_environment() -> Result<String, String> {
 
 #[tauri::command]
 pub fn ensure_environment() -> Result<String, String> {
-    if !check_uv_installed() {
-        install_uv()?;
-    }
+    std::thread::spawn(|| {
+        if !check_uv_installed() {
+            let _ = install_uv();
+        }
+        let _ = ensure_node_environment();
+    });
 
-    ensure_node_environment()?;
-
-    Ok("Environment is ready".to_string())
+    Ok("Environment setup started".to_string())
 }
