@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 static UV_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NVM_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NODE_INSTALLED: AtomicBool = AtomicBool::new(false);
+static ENVIRONMENT_SETUP_STARTED: AtomicBool = AtomicBool::new(false);
 
 pub fn get_npx_shim_path() -> std::path::PathBuf {
     dirs::home_dir()
@@ -307,6 +308,10 @@ fn ensure_node_environment() -> Result<String, String> {
 
 #[tauri::command]
 pub fn ensure_environment() -> Result<String, String> {
+    if ENVIRONMENT_SETUP_STARTED.swap(true, Ordering::SeqCst) {
+        return Ok("Environment setup already in progress".to_string());
+    }
+
     std::thread::spawn(|| {
         if !check_uv_installed() {
             let _ = install_uv();
