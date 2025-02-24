@@ -19,6 +19,13 @@ To run the app, run:
 bun tauri dev
 ```
 
+To run the tests, run:
+
+```bash
+cd src-tauri
+cargo test
+```
+
 ## Updating the App Icon
 
 To update the application icon, you'll need:
@@ -41,4 +48,3 @@ The script will automatically:
 - Place all icons in the correct location (src-tauri/icons)
 
 For best results, use a square PNG image with dimensions of at least 1024x1024 pixels.
-
