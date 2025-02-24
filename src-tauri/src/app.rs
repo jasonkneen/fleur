@@ -42,7 +42,8 @@ pub fn get_app_configs() -> Vec<(String, AppConfig)> {
                 command: uvx_path.clone(),
                 args: vec![
                     "--from".to_string(),
-                    "git+https://github.com/modelcontextprotocol/servers.git#subdirectory=src/time".to_string(),
+                    "git+https://github.com/modelcontextprotocol/servers.git#subdirectory=src/time"
+                        .to_string(),
                     "mcp-server-time".to_string(),
                 ],
             },
@@ -60,37 +61,37 @@ pub fn get_app_configs() -> Vec<(String, AppConfig)> {
             },
         ),
         (
-          "Gmail".to_string(),
-          AppConfig {
-              mcp_key: "gmail".to_string(),
-              command: String::new(),
-              args: vec![],
-          },
-      ),
-      (
-          "Google Calendar".to_string(),
-          AppConfig {
-              mcp_key: "calendar".to_string(),
-              command: String::new(),
-              args: vec![],
-          },
-      ),
-      (
-          "Google Drive".to_string(),
-          AppConfig {
-              mcp_key: "drive".to_string(),
-              command: String::new(),
-              args: vec![],
-          },
-      ),
-      (
-          "YouTube".to_string(),
-          AppConfig {
-              mcp_key: "youtube".to_string(),
-              command: String::new(),
-              args: vec![],
-          },
-      ),
+            "Gmail".to_string(),
+            AppConfig {
+                mcp_key: "gmail".to_string(),
+                command: String::new(),
+                args: vec![],
+            },
+        ),
+        (
+            "Google Calendar".to_string(),
+            AppConfig {
+                mcp_key: "calendar".to_string(),
+                command: String::new(),
+                args: vec![],
+            },
+        ),
+        (
+            "Google Drive".to_string(),
+            AppConfig {
+                mcp_key: "drive".to_string(),
+                command: String::new(),
+                args: vec![],
+            },
+        ),
+        (
+            "YouTube".to_string(),
+            AppConfig {
+                mcp_key: "youtube".to_string(),
+                command: String::new(),
+                args: vec![],
+            },
+        ),
     ]
 }
 
@@ -163,7 +164,10 @@ pub fn install(app_name: &str) -> Result<String, String> {
         let command = config.command.clone();
         let args = config.args.clone();
 
-        if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
+        if let Some(mcp_servers) = config_json
+            .get_mut("mcpServers")
+            .and_then(|v| v.as_object_mut())
+        {
             mcp_servers.insert(
                 mcp_key.clone(),
                 json!({
@@ -177,9 +181,7 @@ pub fn install(app_name: &str) -> Result<String, String> {
             std::thread::spawn(move || {
                 if command.contains("npx") && args.len() > 1 {
                     let package = &args[1];
-                    let _ = Command::new("npm")
-                        .args(["cache", "add", package])
-                        .output();
+                    let _ = Command::new("npm").args(["cache", "add", package]).output();
                 }
             });
 
@@ -199,10 +201,16 @@ pub fn uninstall(app_name: &str) -> Result<String, String> {
     if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
         let mut config_json = get_config()?;
 
-        if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
+        if let Some(mcp_servers) = config_json
+            .get_mut("mcpServers")
+            .and_then(|v| v.as_object_mut())
+        {
             if mcp_servers.remove(&config.mcp_key).is_some() {
                 save_config(&config_json)?;
-                Ok(format!("Removed {} configuration for {}", config.mcp_key, app_name))
+                Ok(format!(
+                    "Removed {} configuration for {}",
+                    config.mcp_key, app_name
+                ))
             } else {
                 Ok(format!("Configuration for {} was not found", app_name))
             }
