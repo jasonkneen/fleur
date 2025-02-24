@@ -1,9 +1,11 @@
 mod common;
 
-use fleur_lib::app::{self, get_app_configs};
-use common::setup_test_config;
+use fleur_lib::app::{self, get_app_configs, set_test_config_path};
 use serde_json::Value;
 use std::{thread, time::Duration};
+use tempfile;
+use uuid::Uuid;
+use serial_test::serial;
 
 #[test]
 fn test_get_app_configs() {
@@ -15,70 +17,113 @@ fn test_get_app_configs() {
 }
 
 #[test]
+#[serial]
 fn test_install() {
-    let (config_path, temp_dir) = setup_test_config();
-    let original_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", temp_dir.path());
+    // Create a direct test with a unique ID
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir.path().join(format!("test_config_{}.json", test_id));
 
-    // Verify initial config
-    let config_str = std::fs::read_to_string(&config_path).unwrap();
-    println!("Initial config: {}", config_str);
+    // Create initial config
+    let initial_config = serde_json::json!({
+        "mcpServers": {}
+    });
 
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    ).unwrap();
+
+    // Set the test config path
+    set_test_config_path(Some(config_path.clone()));
+
+    // Install the app
     let result = app::install("Browser");
-    println!("Install result: {:?}", result);
     assert!(result.is_ok());
 
     // Wait and verify config file
     thread::sleep(Duration::from_millis(100));
 
+    // Read directly from the file to verify it was updated
     let config_str = std::fs::read_to_string(&config_path).unwrap();
-    println!("Config after install: {}", config_str);
-
     let config: Value = serde_json::from_str(&config_str).unwrap();
-    assert!(config["mcpServers"].is_object());
 
     // Check if puppeteer key exists and has expected values
     let puppeteer = &config["mcpServers"]["puppeteer"];
-    println!("Puppeteer config: {}", puppeteer);
     assert!(puppeteer.is_object(), "Puppeteer config should be an object");
 
-    if let Some(home) = original_home {
-        std::env::set_var("HOME", home);
-    }
+    // Reset the test config path
+    set_test_config_path(None);
 }
 
 #[test]
+#[serial]
 fn test_uninstall() {
-    let (config_path, temp_dir) = setup_test_config();
-    let original_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", temp_dir.path());
+    // Create a direct test with a unique ID
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir.path().join(format!("test_config_{}.json", test_id));
 
-    // First install
-    app::install("Browser").unwrap();
+    // Create initial config with puppeteer already installed
+    let initial_config = serde_json::json!({
+        "mcpServers": {
+            "puppeteer": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-puppeteer", "--debug"]
+            }
+        }
+    });
 
-    // Then uninstall
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    ).unwrap();
+
+    // Set the test config path
+    set_test_config_path(Some(config_path.clone()));
+
+    // Uninstall the app
     let result = app::uninstall("Browser");
     assert!(result.is_ok());
+
+    // Wait and verify config file
+    thread::sleep(Duration::from_millis(100));
 
     // Verify config was removed
     let config_str = std::fs::read_to_string(&config_path).unwrap();
     let config: Value = serde_json::from_str(&config_str).unwrap();
-    assert!(config["mcpServers"]["puppeteer"].is_null());
 
-    if let Some(home) = original_home {
-        std::env::set_var("HOME", home);
-    }
+    // Check if puppeteer key was removed
+    let puppeteer = &config["mcpServers"]["puppeteer"];
+    assert!(puppeteer.is_null(), "Puppeteer config should be null after uninstall");
+
+    // Reset the test config path
+    set_test_config_path(None);
 }
 
 #[test]
+#[serial]
 fn test_app_status() {
-    let (config_path, temp_dir) = setup_test_config();
-    let original_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", temp_dir.path());
+    // Create a direct test with a unique ID
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir.path().join(format!("test_config_{}.json", test_id));
+
+    // Create initial config
+    let initial_config = serde_json::json!({
+        "mcpServers": {}
+    });
+
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    ).unwrap();
+
+    // Set the test config path
+    set_test_config_path(Some(config_path.clone()));
 
     // Test initial status
     let result = app::get_app_statuses().unwrap();
-    println!("Initial status: {}", serde_json::to_string_pretty(&result).unwrap());
     assert!(result["installed"].is_object());
     assert!(result["configured"].is_object());
 
@@ -86,14 +131,9 @@ fn test_app_status() {
     app::install("Browser").unwrap();
     thread::sleep(Duration::from_millis(100));
 
-    let config_str = std::fs::read_to_string(&config_path).unwrap();
-    println!("Config after install: {}", config_str);
-
     let result = app::get_app_statuses().unwrap();
-    println!("Status after install: {}", serde_json::to_string_pretty(&result).unwrap());
     assert!(result["installed"]["Browser"].as_bool().unwrap());
 
-    if let Some(home) = original_home {
-        std::env::set_var("HOME", home);
-    }
+    // Reset the test config path
+    set_test_config_path(None);
 }

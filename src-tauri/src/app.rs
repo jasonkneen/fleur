@@ -4,11 +4,39 @@ use dirs;
 use lazy_static::lazy_static;
 use serde_json::{json, Value};
 use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 
 lazy_static! {
     static ref CONFIG_CACHE: Mutex<Option<Value>> = Mutex::new(None);
+    static ref TEST_CONFIG_PATH: Mutex<Option<PathBuf>> = Mutex::new(None);
+}
+
+// Function to set a test config path - only used in tests
+pub fn set_test_config_path(path: Option<PathBuf>) {
+    let mut test_path = TEST_CONFIG_PATH.lock().unwrap();
+    *test_path = path;
+
+    // Clear the cache when changing the config path
+    let mut cache = CONFIG_CACHE.lock().unwrap();
+    *cache = None;
+}
+
+// Function to get the config path - uses test path if set
+fn get_config_path() -> Result<PathBuf, String> {
+    // Check if we have a test config path set
+    let test_path = TEST_CONFIG_PATH.lock().unwrap();
+    if let Some(path) = test_path.clone() {
+        return Ok(path);
+    }
+
+    // Otherwise use the default path
+    let default_path = dirs::home_dir()
+        .ok_or("Could not find home directory".to_string())?
+        .join("Library/Application Support/Claude/claude_desktop_config.json");
+
+    Ok(default_path)
 }
 
 #[derive(Clone, Debug)]
@@ -101,9 +129,7 @@ pub fn get_config() -> Result<Value, String> {
         return Ok(config.clone());
     }
 
-    let config_path = dirs::home_dir()
-        .ok_or("Could not find home directory".to_string())?
-        .join("Library/Application Support/Claude/claude_desktop_config.json");
+    let config_path = get_config_path()?;
 
     if !config_path.exists() {
         ensure_config_file(&config_path)?;
@@ -122,9 +148,7 @@ pub fn get_config() -> Result<Value, String> {
 }
 
 pub fn save_config(config: &Value) -> Result<(), String> {
-    let config_path = dirs::home_dir()
-        .ok_or("Could not find home directory".to_string())?
-        .join("Library/Application Support/Claude/claude_desktop_config.json");
+    let config_path = get_config_path()?;
 
     let updated_config = serde_json::to_string_pretty(config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;

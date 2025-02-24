@@ -27,3 +27,5 @@ lazy_static = "1.4.0"
 
 [dev-dependencies]
 tempfile = "3.8"
+uuid = { version = "1.4", features = ["v4"] }
+serial_test = "2.0"
