@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
+import { useTheme } from 'next-themes';
 import { invoke } from '@tauri-apps/api/core';
 import { useStore } from '@tanstack/react-store';
 import { createFileRoute } from '@tanstack/react-router';
 import { appStore, loadAppStatuses, updateAppInstallation } from '@/store/app';
+import { updateTauriTheme } from '@/lib/update-tauri-theme';
 import { Loader } from '../components/ui/loader';
 import { Home } from '../components/app/home';
 
@@ -14,6 +16,14 @@ function Index() {
   const appStatuses = useStore(appStore, (state) => state.appStatuses);
   const isLoadingStatuses = useStore(appStore, (state) => state.isLoadingStatuses);
   const hasInitializedInstalledApps = useStore(appStore, (state) => state.hasInitializedInstalledApps);
+  const { theme } = useTheme();
+
+  
+  useEffect(() => {
+   if(theme === 'light' || theme === 'dark') {
+    updateTauriTheme(theme);
+   }
+  }, []);
 
   useEffect(() => {
     const initializeEnvironment = async () => {

@@ -1,5 +1,6 @@
 import { useTheme } from 'next-themes';
 import { Settings as SettingsIcon } from 'lucide-react';
+import { updateTauriTheme } from '@/lib/update-tauri-theme';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,11 @@ import { Button } from '@/components/ui/button';
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
+
+  const updateTheme = async (theme: string) => {
+    setTheme(theme);
+    await updateTauriTheme(theme);
+  };
 
   return (
     <Dialog>
@@ -43,13 +49,19 @@ export function Settings() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setTheme('light')}>
+              <DropdownMenuItem onClick={() => {
+                void updateTheme('light');
+              }}>
                 Light
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('dark')}>
+              <DropdownMenuItem onClick={() => {
+                void updateTheme('dark');
+              }}>
                 Dark
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('system')}>
+              <DropdownMenuItem onClick={() => {
+                void updateTheme('system');
+              }}>
                 System
               </DropdownMenuItem>
             </DropdownMenuContent>
