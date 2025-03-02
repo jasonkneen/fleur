@@ -1,4 +1,3 @@
-use std::fs;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -6,8 +5,23 @@ static UV_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NVM_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NODE_INSTALLED: AtomicBool = AtomicBool::new(false);
 static ENVIRONMENT_SETUP_STARTED: AtomicBool = AtomicBool::new(false);
+static mut IS_TEST_MODE: bool = false;
+
+#[cfg(feature = "test-utils")]
+pub fn set_test_mode(enabled: bool) {
+    unsafe {
+        IS_TEST_MODE = enabled;
+    }
+}
+
+fn is_test_mode() -> bool {
+    unsafe { IS_TEST_MODE }
+}
 
 pub fn get_npx_shim_path() -> std::path::PathBuf {
+    if is_test_mode() {
+        return std::path::PathBuf::from("/test/.local/share/fleur/bin/npx-fleur");
+    }
     dirs::home_dir()
         .unwrap_or_default()
         .join(".local/share/fleur/bin/npx-fleur")
@@ -27,6 +41,12 @@ pub fn get_uvx_path() -> Result<String, String> {
 }
 
 pub fn get_nvm_node_paths() -> Result<(String, String), String> {
+    if is_test_mode() {
+        println!("Using test mock path");
+        return Ok(("/test/node".to_string(), "/test/npx".to_string()));
+    }
+
+    println!("Using real implementation path");
     let shell_command = r#"
         export NVM_DIR="$HOME/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -68,6 +88,10 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
 }
 
 pub fn ensure_npx_shim() -> Result<String, String> {
+    if is_test_mode() {
+        return Ok("/test/.local/share/fleur/bin/npx-fleur".to_string());
+    }
+
     let shim_path = get_npx_shim_path();
 
     if shim_path.exists() {
@@ -95,7 +119,7 @@ exec "$NPX" "$@"
         node_path, npx_path
     );
 
-    fs::write(&shim_path, shim_content)
+    std::fs::write(&shim_path, shim_content)
         .map_err(|e| format!("Failed to write shim script: {}", e))?;
 
     Command::new("chmod")
@@ -108,6 +132,10 @@ exec "$NPX" "$@"
 }
 
 fn check_node_version() -> Result<String, String> {
+    if is_test_mode() {
+        return Ok("v20.9.0".to_string());
+    }
+
     if NODE_INSTALLED.load(Ordering::Relaxed) {
         return Ok("v20.9.0".to_string());
     }
@@ -176,6 +204,10 @@ fn install_node() -> Result<(), String> {
 }
 
 fn check_nvm_installed() -> bool {
+    if is_test_mode() {
+        return true;
+    }
+
     if NVM_INSTALLED.load(Ordering::Relaxed) {
         return true;
     }
@@ -234,6 +266,10 @@ fn install_nvm() -> Result<(), String> {
 }
 
 fn check_uv_installed() -> bool {
+    if is_test_mode() {
+        return true;
+    }
+
     if UV_INSTALLED.load(Ordering::Relaxed) {
         return true;
     }
