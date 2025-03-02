@@ -1,8 +1,8 @@
-import { toast } from 'sonner';
-import { invoke } from '@tauri-apps/api/core';
-import { AppInstallButtonProps } from '@/types/components/app';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { toast } from "sonner";
+import { invoke } from "@tauri-apps/api/core";
+import { AppInstallButtonProps } from "@/types/components/app";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export function AppInstallButton({
   app,
@@ -40,8 +40,8 @@ export function AppInstallButton({
         !isConfigured
           ? "bg-muted text-muted-foreground cursor-not-allowed"
           : isInstalled
-          ? "bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30"
-          : "bg-secondary hover:bg-secondary/80 text-blue-600 dark:text-blue-400"
+            ? "bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30"
+            : "bg-secondary hover:bg-secondary/80 text-blue-600 dark:text-blue-400"
       )}
       disabled={!isConfigured}
       onClick={handleGetClick}
