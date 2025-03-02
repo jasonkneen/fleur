@@ -9,7 +9,6 @@ const initialAppStatuses = {
 };
 
 export const appStore = new Store<AppState>({
-  searchQuery: '',
   installedApps: [],
   hasInitializedInstalledApps: false,
   appStatuses: initialAppStatuses,

@@ -2,7 +2,6 @@ import '../app.css';
 import { ThemeProvider } from 'next-themes';
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { Settings } from '../components/app/settings';
-import { SearchInput } from '../components/app/search-input';
 
 export const Route = createRootRoute({
   component: () => {
@@ -18,7 +17,6 @@ export const Route = createRootRoute({
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <SearchInput />
                   <Settings />
                 </div>
               </div>

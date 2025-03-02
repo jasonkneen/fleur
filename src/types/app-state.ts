@@ -1,5 +1,4 @@
 interface AppState {
-  searchQuery: string;
   installedApps: string[];
   hasInitializedInstalledApps: boolean;
   appStatuses: {
