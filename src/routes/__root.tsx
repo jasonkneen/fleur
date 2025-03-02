@@ -1,7 +1,8 @@
 import '../app.css';
 import { ThemeProvider } from 'next-themes';
 import { createRootRoute, Outlet } from '@tanstack/react-router';
-import { Settings } from '../components/app/settings';
+import { Settings } from '@/components/app/settings';
+import { Feedback } from '@/components/app/feedback';
 
 export const Route = createRootRoute({
   component: () => {
@@ -16,7 +17,8 @@ export const Route = createRootRoute({
                     <h1 className="text-xl font-bold">Fleur</h1>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-1">
+                  <Feedback />
                   <Settings />
                 </div>
               </div>
