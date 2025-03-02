@@ -2,8 +2,8 @@ mod common;
 
 use fleur_lib::file_utils::{ensure_config_file, ensure_mcp_servers};
 use serde_json::{json, Value};
-use tempfile::TempDir;
 use std::path::PathBuf;
+use tempfile::TempDir;
 
 fn setup_empty_dir() -> (PathBuf, TempDir) {
     let temp_dir = tempfile::tempdir().unwrap();

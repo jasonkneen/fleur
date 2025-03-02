@@ -2,15 +2,16 @@ mod common;
 
 use fleur_lib::app::{self, get_app_configs, set_test_config_path};
 use serde_json::Value;
+use serial_test::serial;
 use std::{thread, time::Duration};
 use tempfile;
 use uuid::Uuid;
-use serial_test::serial;
 
 #[test]
 fn test_get_app_configs() {
     let configs = get_app_configs();
-    let browser = configs.iter()
+    let browser = configs
+        .iter()
         .find(|(name, _)| name == "Browser")
         .expect("Browser app not found");
     assert_eq!(browser.1.mcp_key, "puppeteer");
@@ -22,7 +23,9 @@ fn test_install() {
     // Create a direct test with a unique ID
     let test_id = Uuid::new_v4().to_string();
     let temp_dir = tempfile::tempdir().unwrap();
-    let config_path = temp_dir.path().join(format!("test_config_{}.json", test_id));
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
 
     // Create initial config
     let initial_config = serde_json::json!({
@@ -32,7 +35,8 @@ fn test_install() {
     std::fs::write(
         &config_path,
         serde_json::to_string_pretty(&initial_config).unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 
     // Set the test config path
     set_test_config_path(Some(config_path.clone()));
@@ -50,7 +54,10 @@ fn test_install() {
 
     // Check if puppeteer key exists and has expected values
     let puppeteer = &config["mcpServers"]["puppeteer"];
-    assert!(puppeteer.is_object(), "Puppeteer config should be an object");
+    assert!(
+        puppeteer.is_object(),
+        "Puppeteer config should be an object"
+    );
 
     // Reset the test config path
     set_test_config_path(None);
@@ -62,7 +69,9 @@ fn test_uninstall() {
     // Create a direct test with a unique ID
     let test_id = Uuid::new_v4().to_string();
     let temp_dir = tempfile::tempdir().unwrap();
-    let config_path = temp_dir.path().join(format!("test_config_{}.json", test_id));
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
 
     // Create initial config with puppeteer already installed
     let initial_config = serde_json::json!({
@@ -77,7 +86,8 @@ fn test_uninstall() {
     std::fs::write(
         &config_path,
         serde_json::to_string_pretty(&initial_config).unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 
     // Set the test config path
     set_test_config_path(Some(config_path.clone()));
@@ -95,7 +105,10 @@ fn test_uninstall() {
 
     // Check if puppeteer key was removed
     let puppeteer = &config["mcpServers"]["puppeteer"];
-    assert!(puppeteer.is_null(), "Puppeteer config should be null after uninstall");
+    assert!(
+        puppeteer.is_null(),
+        "Puppeteer config should be null after uninstall"
+    );
 
     // Reset the test config path
     set_test_config_path(None);
@@ -107,7 +120,9 @@ fn test_app_status() {
     // Create a direct test with a unique ID
     let test_id = Uuid::new_v4().to_string();
     let temp_dir = tempfile::tempdir().unwrap();
-    let config_path = temp_dir.path().join(format!("test_config_{}.json", test_id));
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
 
     // Create initial config
     let initial_config = serde_json::json!({
@@ -117,7 +132,8 @@ fn test_app_status() {
     std::fs::write(
         &config_path,
         serde_json::to_string_pretty(&initial_config).unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 
     // Set the test config path
     set_test_config_path(Some(config_path.clone()));

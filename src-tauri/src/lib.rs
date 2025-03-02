@@ -2,6 +2,9 @@ pub mod app;
 pub mod environment;
 pub mod file_utils;
 
+#[cfg(test)]
+pub use environment::testing;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Preload dependencies in background

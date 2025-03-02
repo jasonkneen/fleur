@@ -1,6 +1,6 @@
+use serde_json::json;
 use std::path::PathBuf;
 use tempfile::TempDir;
-use serde_json::json;
 
 #[allow(dead_code)]
 pub fn setup_test_config() -> (PathBuf, TempDir) {
@@ -16,7 +16,8 @@ pub fn setup_test_config() -> (PathBuf, TempDir) {
     std::fs::write(
         &config_path,
         serde_json::to_string_pretty(&initial_config).unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 
     (config_path, temp_dir)
 }

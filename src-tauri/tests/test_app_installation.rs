@@ -1,7 +1,7 @@
 mod common;
 
-use fleur_lib::app;
 use common::setup_test_config;
+use fleur_lib::app;
 
 #[test]
 fn test_full_app_lifecycle() {
