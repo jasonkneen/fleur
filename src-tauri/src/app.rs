@@ -94,10 +94,7 @@ pub fn get_app_configs() -> Vec<(String, AppConfig)> {
             AppConfig {
                 mcp_key: "linear".to_string(),
                 command: npx_shim.clone(),
-                args: vec![
-                    "-y".to_string(),
-                    "linear-mcp-server".to_string(),
-                ],
+                args: vec!["-y".to_string(), "linear-mcp-server".to_string()],
             },
         ),
         (

@@ -42,7 +42,7 @@ fn test_install() {
     set_test_config_path(Some(config_path.clone()));
 
     // Install the app
-    let result = app::install("Browser");
+    let result = app::install("Browser", None);
     assert!(result.is_ok());
 
     // Wait and verify config file
@@ -144,7 +144,7 @@ fn test_app_status() {
     assert!(result["configured"].is_object());
 
     // Install and check status
-    app::install("Browser").unwrap();
+    app::install("Browser", None).unwrap();
     thread::sleep(Duration::from_millis(100));
 
     let result = app::get_app_statuses().unwrap();
