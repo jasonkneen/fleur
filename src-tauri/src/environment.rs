@@ -1,3 +1,4 @@
+use log::info;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -42,11 +43,9 @@ pub fn get_uvx_path() -> Result<String, String> {
 
 pub fn get_nvm_node_paths() -> Result<(String, String), String> {
     if is_test_mode() {
-        println!("Using test mock path");
         return Ok(("/test/node".to_string(), "/test/npx".to_string()));
     }
 
-    println!("Using real implementation path");
     let shell_command = r#"
         export NVM_DIR="$HOME/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -170,7 +169,7 @@ fn check_node_version() -> Result<String, String> {
 }
 
 fn install_node() -> Result<(), String> {
-    println!("Installing Node.js v20.9.0...");
+    info!("Installing Node.js v20.9.0...");
 
     let nvm_path_output = Command::new("which")
         .arg("nvm")
@@ -199,7 +198,7 @@ fn install_node() -> Result<(), String> {
     }
 
     NODE_INSTALLED.store(true, Ordering::Relaxed);
-    println!("Node.js v20.9.0 installed successfully");
+    info!("Node.js v20.9.0 installed successfully");
     Ok(())
 }
 
@@ -234,14 +233,14 @@ fn check_nvm_installed() -> bool {
 
     if output {
         NVM_INSTALLED.store(true, Ordering::Relaxed);
-        println!("nvm is already installed");
+        info!("nvm is already installed");
     }
 
     output
 }
 
 fn install_nvm() -> Result<(), String> {
-    println!("Installing nvm...");
+    info!("Installing nvm...");
 
     let shell_command = r#"
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
@@ -261,7 +260,7 @@ fn install_nvm() -> Result<(), String> {
     }
 
     NVM_INSTALLED.store(true, Ordering::Relaxed);
-    println!("nvm installed successfully");
+    info!("nvm installed successfully");
     Ok(())
 }
 
@@ -290,14 +289,14 @@ fn check_uv_installed() -> bool {
 
     if version_command {
         UV_INSTALLED.store(true, Ordering::Relaxed);
-        println!("uv is installed");
+        info!("uv is installed");
     }
 
     version_command
 }
 
 fn install_uv() -> Result<(), String> {
-    println!("Installing uv...");
+    info!("Installing uv...");
 
     let shell_command = r#"
         curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -317,7 +316,7 @@ fn install_uv() -> Result<(), String> {
     }
 
     UV_INSTALLED.store(true, Ordering::Relaxed);
-    println!("uv installed successfully");
+    info!("uv installed successfully");
     Ok(())
 }
 
