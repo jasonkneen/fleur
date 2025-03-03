@@ -3,7 +3,7 @@ pub mod environment;
 pub mod file_utils;
 
 use tauri::Manager;
-use tauri_plugin_updater::UpdaterExt;
+use tauri_plugin_updater::{UpdaterExt, Builder as UpdaterBuilder};
 
 async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
     if let Some(update) = app.updater()?.check().await? {
@@ -22,6 +22,8 @@ async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
             .await?;
         println!("Update installed");
         app.restart();
+    } else {
+        println!("No update available");
     }
     Ok(())
 }
@@ -34,6 +36,7 @@ pub fn run() {
     });
 
     tauri::Builder::default()
+        .plugin(UpdaterBuilder::new().build())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             app::install,
@@ -45,6 +48,7 @@ pub fn run() {
         ])
         .setup(|app| {
             let handle = app.handle().clone();
+            println!("Checking for updates...");
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = update(handle).await {
                     println!("Error checking for updates: {}", e);
