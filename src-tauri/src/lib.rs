@@ -9,19 +9,29 @@ async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
     if let Some(update) = app.updater()?.check().await? {
         println!("Update available: {}", update.version);
         let mut downloaded = 0;
-        update
+        match update
             .download_and_install(
                 |chunk_length, content_length| {
                     downloaded += chunk_length;
                     println!("Downloaded {downloaded} from {content_length:?}");
                 },
                 || {
-                    println!("Download finished");
+                    println!("Download finished, preparing to install...");
                 },
             )
-            .await?;
-        println!("Update installed");
-        app.restart();
+            .await
+        {
+            Ok(_) => {
+                println!("Update installed successfully, restarting...");
+                app.restart();
+            }
+            Err(e) => {
+                println!("Failed to install update: {}", e);
+                if e.to_string().contains("InvalidSignature") {
+                    println!("Update signature verification failed. This could mean the update package has been tampered with or the public key doesn't match.");
+                }
+            }
+        }
     } else {
         println!("No update available");
     }
