@@ -1,4 +1,4 @@
-import { Clock, HardDrive, Youtube } from 'lucide-react';
+import { Clock, HardDrive } from "lucide-react";
 
 import type { App } from "@/types/components/app";
 
@@ -27,7 +27,7 @@ export const apps: App[] = [
     price: "Get",
     developer: "Model Context Protocol",
   },
-  
+
   {
     name: "Hacker News",
     description: "Hacker News",
@@ -73,18 +73,6 @@ export const apps: App[] = [
       icon: HardDrive,
     },
     category: "Productivity",
-    price: "Free",
-    developer: "Google LLC",
-  },
-  {
-    name: "YouTube",
-    description: "Video streaming platform",
-    stars: 1000,
-    icon: {
-      type: "lucide",
-      icon: Youtube,
-    },
-    category: "Entertainment",
     price: "Free",
     developer: "Google LLC",
   },

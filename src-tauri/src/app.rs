@@ -111,15 +111,7 @@ pub fn get_app_configs() -> Vec<(String, AppConfig)> {
                 command: String::new(),
                 args: vec![],
             },
-        ),
-        (
-            "YouTube".to_string(),
-            AppConfig {
-                mcp_key: "youtube".to_string(),
-                command: String::new(),
-                args: vec![],
-            },
-        ),
+        )
     ]
 }
 
