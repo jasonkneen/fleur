@@ -9,7 +9,10 @@ export const apps: App[] = [
     stars: 1000,
     icon: {
       type: "url",
-      url: `/servers/browser.svg`,
+      url: {
+        light: `/servers/browser.svg`,
+        dark: `/servers/browser.svg`,
+      },
     },
     category: "Utilities",
     price: "Get",
@@ -33,7 +36,10 @@ export const apps: App[] = [
     stars: 1000,
     icon: {
       type: "url",
-      url: `/servers/yc.svg`,
+      url: {
+        light: `/servers/yc.svg`,
+        dark: `/servers/yc.svg`,
+      },
     },
     category: "Social",
     price: "Get",
@@ -45,7 +51,10 @@ export const apps: App[] = [
     stars: 1000,
     icon: {
       type: "url",
-      url: `/servers/linear.svg`,
+      url: {
+        light: `/servers/linear-dark.svg`,
+        dark: `/servers/linear-light.svg`,
+      },
     },
     category: "Productivity",
     price: "Get",
@@ -64,7 +73,10 @@ export const apps: App[] = [
     stars: 1000,
     icon: {
       type: "url",
-      url: `/servers/gmail.svg`,
+      url: {
+        light: `/servers/gmail.svg`,
+        dark: `/servers/gmail.svg`,
+      },
     },
     category: "Productivity",
     price: "Free",
@@ -76,7 +88,10 @@ export const apps: App[] = [
     stars: 1000,
     icon: {
       type: "url",
-      url: `/servers/gcal.svg`,
+      url: {
+        light: `/servers/gcal.svg`,
+        dark: `/servers/gcal.svg`,
+      },
     },
     category: "Productivity",
     price: "Free",

@@ -6,7 +6,10 @@ export interface App {
   stars: number;
   icon: {
     type: "url" | "lucide";
-    url?: string;
+    url?: {
+      light: string;
+      dark: string;
+    };
     icon?: LucideIcon;
   };
   category: string;
