@@ -1,0 +1,11 @@
+{
+    "version": "0.1.0",
+    "notes": "Initial release",
+    "pub_date": "2025-03-03T13:31:45Z",
+    "platforms": {
+        "darwin-aarch64": {
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTQ3N6ZzZhc3lGWDFpdE5JOUFQWGwwSTNyNzJnb0wyTXZvcTV3MVpDN1dwWUlCTDRrMWhpZ3p1TUhWaWpnU05WcGs3Um44Qi9CQjVZSStGZ3ErZGNhM2c3bVBybENFandjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQxMDA4MTk4CWZpbGU6RmxldXIuYXBwLnRhci5negpTVlR2YklZYXpCaE5iOUd5SE1zTzh0MUJTdnF1LzZRa29pQzdRWm5nRTQvVS90ZzF6bkNpQ3ZxY2lwSU0rUnpMRnRCNytGRk9qSFFuRlV6MkdtY3pBQT09Cg==",
+            "url": "https://github.com/fleuristes/fleur/releases/download/v0.1.0/Fleur.app.tar.gz"
+        }
+    }
+}
