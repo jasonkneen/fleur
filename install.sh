@@ -70,4 +70,4 @@ echo "Building Fleur with Tauri (this may take a while)..."
 cd src-tauri
 cargo tauri build
 
-echo "Build complete! You can find the application in src-tauri/target/release/bundle"
+echo "Build complete!"
