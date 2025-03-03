@@ -90,6 +90,14 @@ pub fn get_app_configs() -> Vec<(String, AppConfig)> {
             },
         ),
         (
+            "Linear".to_string(),
+            AppConfig {
+                mcp_key: "linear".to_string(),
+                command: npx_shim.clone(),
+                args: vec!["-y".to_string(), "linear-mcp-server".to_string()],
+            },
+        ),
+        (
             "Gmail".to_string(),
             AppConfig {
                 mcp_key: "gmail".to_string(),
@@ -171,7 +179,7 @@ pub fn preload_dependencies() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn install(app_name: &str) -> Result<String, String> {
+pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<String, String> {
     info!("Installing app: {}", app_name);
 
     let configs = get_app_configs();
@@ -185,14 +193,17 @@ pub fn install(app_name: &str) -> Result<String, String> {
             .get_mut("mcpServers")
             .and_then(|v| v.as_object_mut())
         {
-            mcp_servers.insert(
-                mcp_key.clone(),
-                json!({
-                    "command": command,
-                    "args": args.clone(),
-                }),
-            );
+            let mut app_config = json!({
+                "command": command,
+                "args": args.clone(),
+            });
 
+            // Add environment variables if provided
+            if let Some(env) = env_vars {
+                app_config["env"] = env;
+            }
+
+            mcp_servers.insert(mcp_key.clone(), app_config);
             save_config(&config_json)?;
 
             std::thread::spawn(move || {

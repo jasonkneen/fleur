@@ -1,17 +1,25 @@
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon } from "lucide-react";
 
 export interface App {
   name: string;
   description: string;
   stars: number;
   icon: {
-    type: 'url' | 'lucide';
-    url?: string;
+    type: "url" | "lucide";
+    url?: {
+      light: string;
+      dark: string;
+    };
     icon?: LucideIcon;
   };
   category: string;
   price: string;
   developer: string;
+  envVars?: {
+    name: string;
+    label: string;
+    description: string;
+  }[];
 }
 
 export interface AppListItemProps {

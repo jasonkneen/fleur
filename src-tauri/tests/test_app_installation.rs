@@ -12,7 +12,7 @@ fn test_full_app_lifecycle() {
     std::env::set_var("HOME", temp_dir.path());
 
     // Test installation
-    let install_result = app::install("Browser");
+    let install_result = app::install("Browser", None);
     assert!(install_result.is_ok());
     assert!(app::is_installed("Browser").unwrap());
 
