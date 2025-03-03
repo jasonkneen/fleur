@@ -33,3 +33,6 @@ fleur = { path = ".", features = ["test-utils"] }
 
 [features]
 test-utils = []
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"

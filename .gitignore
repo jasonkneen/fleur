@@ -1,3 +1,8 @@
+# Certs
+*.p12
+*.cer
+*.txt
+
 # Logs
 logs
 *.log
