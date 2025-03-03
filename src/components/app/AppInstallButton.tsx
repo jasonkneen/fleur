@@ -70,53 +70,73 @@ export function AppInstallButton({
     return app.envVars.every((envVar) => envVars[envVar.name]);
   };
 
-  return (
-    <>
+  const button = (
+    <Button
+      size="sm"
+      className={cn(
+        "transition-colors rounded-full px-6",
+        !isConfigured
+          ? "bg-muted text-muted-foreground cursor-not-allowed"
+          : isInstalled
+            ? "bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30"
+            : "bg-secondary hover:bg-secondary/80 text-blue-600 dark:text-blue-400"
+      )}
+      disabled={!isConfigured}
+      onClick={handleGetClick}
+      variant="secondary">
+      {isInstalled ? "Uninstall" : "Get"}
+    </Button>
+  );
+
+  // Only wrap with Dialog if we need environment variables and we're installing
+  if (app.envVars?.length && !isInstalled) {
+    return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <Button
-            size="sm"
-            className={cn(
-              "transition-colors rounded-full px-6",
-              !isConfigured
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : isInstalled
-                  ? "bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30"
-                  : "bg-secondary hover:bg-secondary/80 text-blue-600 dark:text-blue-400"
-            )}
-            disabled={!isConfigured}
-            onClick={handleGetClick}
-            variant="secondary">
-            {isInstalled ? "Uninstall" : "Get"}
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enter API Keys for {app.name}</DialogTitle>
+        <DialogTrigger asChild>{button}</DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle className="text-xl font-semibold tracking-tight">
+              Configure {app.name}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {app.envVars?.map((envVar) => (
-              <div key={envVar.name} className="space-y-2">
-                <label className="text-sm font-medium">{envVar.label}</label>
-                <Input
-                  type="password"
-                  placeholder={envVar.description}
-                  value={envVars[envVar.name] || ""}
-                  onChange={(e) =>
-                    handleEnvVarChange(envVar.name, e.target.value)
-                  }
-                />
-              </div>
-            ))}
-            <Button
-              className="w-full"
-              onClick={() => handleInstall(envVars)}
-              disabled={!isFormValid()}>
-              Install
-            </Button>
+          <div className="space-y-6 py-4">
+            <div className="space-y-4">
+              {app.envVars.map((envVar) => (
+                <div key={envVar.name} className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {envVar.label}
+                  </label>
+                  <Input
+                    type="password"
+                    placeholder={envVar.description}
+                    value={envVars[envVar.name] || ""}
+                    onChange={(e) =>
+                      handleEnvVarChange(envVar.name, e.target.value)
+                    }
+                    className="h-9"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsOpen(false)}
+                className="h-9">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleInstall(envVars)}
+                disabled={!isFormValid()}
+                className="h-9">
+                Get
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
-    </>
-  );
+    );
+  }
+
+  return button;
 }
