@@ -2,8 +2,8 @@ pub mod app;
 pub mod environment;
 pub mod file_utils;
 
-use tauri::Manager;
-use tauri_plugin_updater::{UpdaterExt, Builder as UpdaterBuilder};
+use tauri::Manager as _;
+use tauri_plugin_updater::{Builder as UpdaterBuilder, UpdaterExt};
 
 async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
     if let Some(update) = app.updater()?.check().await? {
