@@ -27,7 +27,6 @@ export const apps: App[] = [
     price: "Get",
     developer: "Model Context Protocol",
   },
-
   {
     name: "Hacker News",
     description: "Hacker News",
@@ -39,6 +38,18 @@ export const apps: App[] = [
     category: "Social",
     price: "Get",
     developer: "Y Combinator",
+  },
+  {
+    name: "Linear",
+    description: "Linear",
+    stars: 1000,
+    icon: {
+      type: "url",
+      url: `/servers/linear.svg`,
+    },
+    category: "Productivity",
+    price: "Get",
+    developer: "Linear",
   },
   {
     name: "Gmail",

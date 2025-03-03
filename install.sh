@@ -58,7 +58,7 @@ fi
 
 # Clone the repository
 echo "Cloning Fleur repository..."
-git clone git@github.com:fleuristes/fleur
+git clone https://github.com/fleuristes/fleur
 cd fleur
 
 # Install dependencies with Bun

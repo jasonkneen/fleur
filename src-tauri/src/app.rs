@@ -90,6 +90,17 @@ pub fn get_app_configs() -> Vec<(String, AppConfig)> {
             },
         ),
         (
+            "Linear".to_string(),
+            AppConfig {
+                mcp_key: "linear".to_string(),
+                command: npx_shim.clone(),
+                args: vec![
+                    "-y".to_string(),
+                    "linear-mcp-server".to_string(),
+                ],
+            },
+        ),
+        (
             "Gmail".to_string(),
             AppConfig {
                 mcp_key: "gmail".to_string(),
