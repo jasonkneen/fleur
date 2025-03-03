@@ -40,6 +40,25 @@ export const apps: App[] = [
     developer: "Y Combinator",
   },
   {
+    name: "Linear",
+    description: "Linear",
+    stars: 1000,
+    icon: {
+      type: "url",
+      url: `/servers/linear.svg`,
+    },
+    category: "Productivity",
+    price: "Get",
+    developer: "Linear",
+    envVars: [
+      {
+        name: "LINEAR_API_KEY",
+        label: "Linear API Key",
+        description: "Your Linear API key for authentication",
+      },
+    ],
+  },
+  {
     name: "Gmail",
     description: "Email and messaging platform",
     stars: 1000,
