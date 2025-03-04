@@ -38,19 +38,25 @@ fi
 if ! command -v rustc &> /dev/null; then
     echo "Installing Rust..."
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    # Source the cargo environment within this script
     source "$HOME/.cargo/env"
 else
     echo "Rust is already installed."
 fi
 
-# Check if Bun is installed
+# Ensure Cargo is in PATH regardless of how Rust was installed
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Install Bun using Homebrew instead of curl
 if ! command -v bun &> /dev/null; then
-    echo "Installing Bun..."
-    curl -fsSL https://bun.sh/install | bash
-    source ~/.bashrc
-    # For zsh users (more common on macOS):
-    if [[ -f ~/.zshrc ]]; then
-        source ~/.zshrc
+    echo "Installing Bun using Homebrew..."
+    brew tap oven-sh/bun
+    brew install bun
+
+    # Verify installation
+    if ! command -v bun &> /dev/null; then
+        echo "Error: Bun installation failed. Please install manually with 'brew install bun'"
+        exit 1
     fi
 else
     echo "Bun is already installed."
@@ -65,9 +71,17 @@ cd fleur
 echo "Installing project dependencies with Bun..."
 bun install
 
-# Build with Tauri
+# Install Tauri CLI through Cargo (explicitly)
+echo "Installing Tauri CLI..."
+cargo install tauri-cli --version "^2.0.0" || echo "Tauri CLI installation skipped (might already be installed)"
+
+# Build with Tauri using bunx to ensure correct path
 echo "Building Fleur with Tauri (this may take a while)..."
 cd src-tauri
-cargo tauri build
+bunx tauri build || (
+    echo "Trying alternative build method..."
+    # Try with cargo directly as fallback
+    cargo tauri build
+)
 
 echo "Build complete!"
