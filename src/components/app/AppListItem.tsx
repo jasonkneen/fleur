@@ -19,10 +19,8 @@ export function AppListItem({
   isInstalled,
   onInstallationChange,
 }: AppListItemProps) {
-
-
   return (
-    <Card className="border-transparent bg-transparent shadow-none">
+    <Card className="border-transparent bg-transparent shadow-none hover:shadow-sm transition-shadow duration-200">
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <Link
@@ -45,6 +43,7 @@ export function AppListItem({
             isConfigured={isConfigured}
             isInstalled={isInstalled}
             onInstallationChange={onInstallationChange}
+            showConfigure={false}
           />
         </div>
       </CardContent>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useStore } from '@tanstack/react-store';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { appStore, loadAppStatuses, updateAppInstallation } from '@/store/app';
-import { apps } from '../lib/data';
+import { apps } from '../appRegistry';
 import { Loader } from '../components/ui/loader';
 import {
   Breadcrumb,

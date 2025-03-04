@@ -5,10 +5,23 @@ interface AppDescriptionProps {
 }
 
 export function AppDescription({ app }: AppDescriptionProps) {
+  const features = app.features;
+
   return (
     <section>
-      <h2 className="text-xl font-semibold mb-4">About this app</h2>
-      <p className="text-base leading-relaxed text-zinc-600 dark:text-zinc-400">{app.description}</p>
+      <div className="flex gap-6 h-full">
+        <div className="flex-1">
+          <h2 className="text-lg font-semibold mb-2">Features</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {features.map((feature) => (
+              <div key={feature.name} className="bg-gray-50 rounded-lg p-4 flex flex-col gap-2">
+                <p className="text-base font-semibold">{feature.name}</p>
+                <p className="text-base leading-relaxed italic text-zinc-600 dark:text-zinc-400">"{feature.prompt}"</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
   );
 } 
