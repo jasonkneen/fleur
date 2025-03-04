@@ -83,6 +83,7 @@ pub fn run() {
             app::preload_dependencies,
             app::save_app_env,
             app::get_app_env,
+            app::get_app_registry,
             environment::ensure_environment,
         ])
         .setup(|app| {

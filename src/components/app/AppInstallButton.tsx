@@ -132,7 +132,7 @@ export function AppInstallButton({
           <div className="flex gap-6 h-full">
             <div className="flex-1">
               <h2 className="text-lg font-semibold mb-2">Configure {app.name}</h2>
-              <p className="mb-4 text-base leading-relaxed text-zinc-600 dark:text-zinc-400">This app requires some setup to use. Please follow the steps below.</p>
+              <p className="mb-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">This app requires some setup to use. Please follow the steps below.</p>
               <div className="flex flex-col gap-4">
                 {app.setup.map((setup) => setup?.type === 'text' ? (
                   <div key={setup.label} className="flex flex-col gap-2">
@@ -156,11 +156,8 @@ export function AppInstallButton({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => navigate({to: '/app/$name', params: {name: app.name}})}>
-              Close
-            </Button>
             <Button 
-              variant="ghost" 
+              variant="secondary"
               onClick={saveAll}
               disabled={isLoading.all}
             >
