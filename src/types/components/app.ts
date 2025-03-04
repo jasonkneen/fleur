@@ -3,6 +3,7 @@ import { LucideIcon } from "lucide-react";
 export interface App {
   name: string;
   description: string;
+  stars: number;
   icon: {
     type: "url" | "lucide";
     url?: {
@@ -14,9 +15,10 @@ export interface App {
   category: string;
   price: string;
   developer: string;
-  sourceUrl: string;
-  features: Feature[];
+  sourceUrl?: string;
+  features?: Feature[];
   setup?: Setup[];
+  envVars?: EnvVar[];
 }
 
 interface Feature {
@@ -27,10 +29,16 @@ interface Feature {
 
 interface Setup {
   label: string;
-  type: 'text' | 'input';
+  type: "text" | "input";
   placeholder?: string;
   value?: string;
   key: string;
+}
+
+interface EnvVar {
+  name: string;
+  label: string;
+  description: string;
 }
 
 export interface AppListItemProps {
