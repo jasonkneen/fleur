@@ -3,7 +3,6 @@ import { LucideIcon } from "lucide-react";
 export interface App {
   name: string;
   description: string;
-  stars: number;
   icon: {
     type: "url" | "lucide";
     url?: {
@@ -15,11 +14,23 @@ export interface App {
   category: string;
   price: string;
   developer: string;
-  envVars?: {
-    name: string;
-    label: string;
-    description: string;
-  }[];
+  sourceUrl: string;
+  features: Feature[];
+  setup?: Setup[];
+}
+
+interface Feature {
+  name: string;
+  description: string;
+  prompt: string;
+}
+
+interface Setup {
+  label: string;
+  type: 'text' | 'input';
+  placeholder?: string;
+  value?: string;
+  key: string;
 }
 
 export interface AppListItemProps {
@@ -38,4 +49,5 @@ export interface AppInstallButtonProps {
   isConfigured: boolean;
   isInstalled: boolean;
   onInstallationChange: (isInstalled: boolean) => void;
+  showConfigure?: boolean;
 }

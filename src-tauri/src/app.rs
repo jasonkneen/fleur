@@ -268,6 +268,69 @@ pub fn is_installed(app_name: &str) -> Result<bool, String> {
 }
 
 #[tauri::command]
+pub fn save_app_env(app_name: &str, env_values: serde_json::Value) -> Result<String, String> {
+    println!("Saving ENV values for app: {}", app_name);
+
+    let configs = get_app_configs();
+    if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
+        let mut config_json = get_config()?;
+        let mcp_key = config.mcp_key.clone();
+
+        if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
+            if let Some(server_config) = mcp_servers.get_mut(&mcp_key).and_then(|v| v.as_object_mut()) {
+                // Create ENV object if it doesn't exist
+                if !server_config.contains_key("env") {
+                    server_config.insert("env".to_string(), json!({}));
+                }
+
+                // Add or update all key-value pairs in ENV
+                if let Some(env) = server_config.get_mut("env").and_then(|v| v.as_object_mut()) {
+                    if let Some(values) = env_values.as_object() {
+                        for (key, value) in values {
+                            env.insert(key.clone(), value.clone());
+                        }
+                        
+                        save_config(&config_json)?;
+                        return Ok(format!("Saved ENV values for app '{}'", app_name));
+                    }
+                    return Err("Invalid env_values format".to_string());
+                }
+            }
+            return Err(format!("App '{}' is not installed", app_name));
+        } else {
+            return Err("Failed to find mcpServers in config".to_string());
+        }
+    } else {
+        return Err(format!("No configuration available for '{}'", app_name));
+    }
+}
+
+#[tauri::command]
+pub fn get_app_env(app_name: &str) -> Result<Value, String> {
+    println!("Getting ENV values for app: {}", app_name);
+
+    let configs = get_app_configs();
+    if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
+        let config_json = get_config()?;
+        let mcp_key = config.mcp_key.clone();
+
+        if let Some(mcp_servers) = config_json.get("mcpServers").and_then(|v| v.as_object()) {
+            if let Some(server_config) = mcp_servers.get(&mcp_key).and_then(|v| v.as_object()) {
+                if let Some(env) = server_config.get("env") {
+                    return Ok(env.clone());
+                }
+                return Ok(json!({}));
+            }
+            return Err(format!("App '{}' is not installed", app_name));
+        } else {
+            return Err("Failed to find mcpServers in config".to_string());
+        }
+    } else {
+        return Err(format!("No configuration available for '{}'", app_name));
+    }
+}
+
+#[tauri::command]
 pub fn get_app_statuses() -> Result<Value, String> {
     let config_json = get_config()?;
 

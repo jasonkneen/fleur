@@ -1,4 +1,4 @@
-import { apps } from '@/lib/data';
+import { apps } from '@/appRegistry';
 import { AppListItem } from '@/components/app/AppListItem';
 
 import type { App } from "@/types/components/app";

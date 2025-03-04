@@ -81,6 +81,8 @@ pub fn run() {
             app::is_installed,
             app::get_app_statuses,
             app::preload_dependencies,
+            app::save_app_env,
+            app::get_app_env,
             environment::ensure_environment,
         ])
         .setup(|app| {
