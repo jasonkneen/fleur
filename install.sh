@@ -1,6 +1,29 @@
 #!/bin/bash
 set -e
 
+# Define cleanup function
+cleanup() {
+    # Get exit code
+    EXIT_CODE=$?
+
+    # If installation failed, clean up the cloned repository
+    if [ $EXIT_CODE -ne 0 ]; then
+        echo "Installation failed with exit code $EXIT_CODE"
+        echo "Cleaning up..."
+        if [ -d "$SCRIPT_DIR/fleur" ]; then
+            rm -rf "$SCRIPT_DIR/fleur"
+        fi
+    fi
+
+    exit $EXIT_CODE
+}
+
+# Set trap to call cleanup function on exit
+trap cleanup EXIT
+
+# Store original directory to properly handle paths
+SCRIPT_DIR="$(pwd)"
+
 echo "Installing Fleur from source..."
 
 # Check if curl is available (it should be on all macOS systems by default)
@@ -62,6 +85,12 @@ else
     echo "Bun is already installed."
 fi
 
+# Clean up any existing fleur directory in the current working directory
+echo "Cleaning up any previous installation attempts..."
+if [ -d "./fleur" ]; then
+    rm -rf "./fleur"
+fi
+
 # Clone the repository
 echo "Cloning Fleur repository..."
 git clone https://github.com/fleuristes/fleur
@@ -84,4 +113,14 @@ bunx tauri build || (
     cargo tauri build
 )
 
-echo "Build complete!"
+# Check if build was successful
+if [ $? -eq 0 ]; then
+    echo "Build complete!"
+    echo "Fleur has been successfully installed."
+else
+    echo "Build failed."
+    echo "Cleaning up..."
+    cd "$SCRIPT_DIR"
+    rm -rf "./fleur"
+    exit 1
+fi
