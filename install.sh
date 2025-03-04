@@ -43,6 +43,10 @@ else
     echo "Rust is already installed."
 fi
 
+# Install cargo-tauri CLI
+echo "Installing cargo-tauri CLI..."
+cargo install tauri-cli
+
 # Check if Bun is installed
 if ! command -v bun &> /dev/null; then
     echo "Installing Bun..."
