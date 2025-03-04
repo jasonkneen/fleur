@@ -47,15 +47,11 @@ fi
 echo "Installing cargo-tauri CLI..."
 cargo install tauri-cli
 
-# Check if Bun is installed
+# Install Bun if not already installed
 if ! command -v bun &> /dev/null; then
-    echo "Installing Bun..."
-    curl -fsSL https://bun.sh/install | bash
-    source ~/.bashrc
-    # For zsh users (more common on macOS):
-    if [[ -f ~/.zshrc ]]; then
-        source ~/.zshrc
-    fi
+    echo "Installing Bun using Homebrew..."
+    brew tap oven-sh/bun
+    brew install bun
 else
     echo "Bun is already installed."
 fi
