@@ -1,4 +1,4 @@
-import { App } from '@/types/components/app';
+import { App } from "@/types/components/app";
 
 interface AppDescriptionProps {
   app: App;
@@ -13,10 +13,14 @@ export function AppDescription({ app }: AppDescriptionProps) {
         <div className="flex-1">
           <h2 className="text-lg font-semibold mb-2">Features</h2>
           <div className="grid grid-cols-2 gap-4">
-            {features.map((feature) => (
-              <div key={feature.name} className="bg-gray-50 rounded-lg p-4 flex flex-col gap-2">
+            {features?.map((feature) => (
+              <div
+                key={feature.name}
+                className="bg-gray-50 rounded-lg p-4 flex flex-col gap-2">
                 <p className="text-base font-semibold">{feature.name}</p>
-                <p className="text-base leading-relaxed italic text-zinc-600 dark:text-zinc-400">"{feature.prompt}"</p>
+                <p className="text-base leading-relaxed italic text-zinc-600 dark:text-zinc-400">
+                  "{feature.prompt}"
+                </p>
               </div>
             ))}
           </div>
@@ -24,4 +28,4 @@ export function AppDescription({ app }: AppDescriptionProps) {
       </div>
     </section>
   );
-} 
+}
