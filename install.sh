@@ -1,6 +1,29 @@
 #!/bin/bash
 set -e
 
+# Define cleanup function
+cleanup() {
+    # Get exit code
+    EXIT_CODE=$?
+
+    # If installation failed, clean up the cloned repository
+    if [ $EXIT_CODE -ne 0 ]; then
+        echo "Installation failed with exit code $EXIT_CODE"
+        echo "Cleaning up..."
+        if [ -d "$SCRIPT_DIR/fleur" ]; then
+            rm -rf "$SCRIPT_DIR/fleur"
+        fi
+    fi
+
+    exit $EXIT_CODE
+}
+
+# Set trap to call cleanup function on exit
+trap cleanup EXIT
+
+# Store original directory to properly handle paths
+SCRIPT_DIR="$(pwd)"
+
 echo "Installing Fleur from source..."
 
 # Check if curl is available (it should be on all macOS systems by default)
@@ -38,22 +61,34 @@ fi
 if ! command -v rustc &> /dev/null; then
     echo "Installing Rust..."
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    # Source the cargo environment within this script
     source "$HOME/.cargo/env"
 else
     echo "Rust is already installed."
 fi
 
-# Check if Bun is installed
+# Ensure Cargo is in PATH regardless of how Rust was installed
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Install Bun using Homebrew instead of curl
 if ! command -v bun &> /dev/null; then
-    echo "Installing Bun..."
-    curl -fsSL https://bun.sh/install | bash
-    source ~/.bashrc
-    # For zsh users (more common on macOS):
-    if [[ -f ~/.zshrc ]]; then
-        source ~/.zshrc
+    echo "Installing Bun using Homebrew..."
+    brew tap oven-sh/bun
+    brew install bun
+
+    # Verify installation
+    if ! command -v bun &> /dev/null; then
+        echo "Error: Bun installation failed. Please install manually with 'brew install bun'"
+        exit 1
     fi
 else
     echo "Bun is already installed."
+fi
+
+# Clean up any existing fleur directory in the current working directory
+echo "Cleaning up any previous installation attempts..."
+if [ -d "./fleur" ]; then
+    rm -rf "./fleur"
 fi
 
 # Clone the repository
@@ -65,9 +100,27 @@ cd fleur
 echo "Installing project dependencies with Bun..."
 bun install
 
-# Build with Tauri
+# Install Tauri CLI through Cargo (explicitly)
+echo "Installing Tauri CLI..."
+cargo install tauri-cli --version "^2.0.0" || echo "Tauri CLI installation skipped (might already be installed)"
+
+# Build with Tauri using bunx to ensure correct path
 echo "Building Fleur with Tauri (this may take a while)..."
 cd src-tauri
-cargo tauri build
+bunx tauri build || (
+    echo "Trying alternative build method..."
+    # Try with cargo directly as fallback
+    cargo tauri build
+)
 
-echo "Build complete!"
+# Check if build was successful
+if [ $? -eq 0 ]; then
+    echo "Build complete!"
+    echo "Fleur has been successfully installed."
+else
+    echo "Build failed."
+    echo "Cleaning up..."
+    cd "$SCRIPT_DIR"
+    rm -rf "./fleur"
+    exit 1
+fi
