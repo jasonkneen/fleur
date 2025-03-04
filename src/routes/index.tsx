@@ -3,7 +3,7 @@ import { useTheme } from 'next-themes';
 import { invoke } from '@tauri-apps/api/core';
 import { useStore } from '@tanstack/react-store';
 import { createFileRoute } from '@tanstack/react-router';
-import { appStore, loadAppStatuses, updateAppInstallation } from '@/store/app';
+import { appStore, loadAppStatuses, updateAppInstallation, loadApps } from '@/store/app';
 import { updateTauriTheme } from '@/lib/update-tauri-theme';
 import { Loader } from '../components/ui/loader';
 import { Home } from '../components/app/home';
@@ -15,9 +15,9 @@ export const Route = createFileRoute("/")({
 function Index() {
   const appStatuses = useStore(appStore, (state) => state.appStatuses);
   const isLoadingStatuses = useStore(appStore, (state) => state.isLoadingStatuses);
+  const isLoadingApps = useStore(appStore, (state) => state.isLoadingApps);
   const hasInitializedInstalledApps = useStore(appStore, (state) => state.hasInitializedInstalledApps);
   const { theme } = useTheme();
-
   
   useEffect(() => {
    if(theme === 'light' || theme === 'dark') {
@@ -32,6 +32,7 @@ function Index() {
       try {
         await invoke("ensure_environment");
         await loadAppStatuses();
+        await loadApps();
         appStore.setState((state) => ({
           ...state,
           hasInitializedInstalledApps: true,
@@ -48,7 +49,7 @@ function Index() {
     updateAppInstallation(appName, isInstalled);
   };
 
-  if (isLoadingStatuses || !appStatuses) {
+  if (isLoadingStatuses || isLoadingApps || !appStatuses) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <Loader className="text-gray-800 dark:text-gray-200" size={48} />

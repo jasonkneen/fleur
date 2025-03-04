@@ -1,7 +1,8 @@
-import { apps } from '@/appRegistry';
+import { useApps } from '@/appRegistry';
 import { AppListItem } from '@/components/app/AppListItem';
-
 import type { App } from "@/types/components/app";
+import { Loader } from '@/components/ui/loader';
+
 interface HomeProps {
   configuredApps: { [key: string]: boolean };
   installedApps: { [key: string]: boolean };
@@ -15,10 +16,20 @@ export function Home({
   onAppSelect,
   onInstallationChange,
 }: HomeProps) {
+  const { apps, isLoading } = useApps();
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader className="text-gray-800 dark:text-gray-200" />
+      </div>
+    );
+  }
+
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-start">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Popular Apps</h2>
+        <h2 className="w-[100px] text-4xl font-bold text-gray-900 dark:text-gray-100">Popular Apps</h2>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
         {apps.map((app) => (

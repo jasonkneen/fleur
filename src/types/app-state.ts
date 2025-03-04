@@ -1,3 +1,5 @@
+import { App } from "./components/app";
+
 interface AppState {
   installedApps: string[];
   hasInitializedInstalledApps: boolean;
@@ -6,6 +8,8 @@ interface AppState {
     configured: Record<string, boolean>;
   };
   isLoadingStatuses: boolean;
+  apps: App[];
+  isLoadingApps: boolean;
 }
 
 export type { AppState };

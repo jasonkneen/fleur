@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useStore } from '@tanstack/react-store';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { appStore, loadAppStatuses, updateAppInstallation } from '@/store/app';
-import { apps } from '../appRegistry';
+import { useApps } from '../appRegistry';
 import { Loader } from '../components/ui/loader';
 import {
   Breadcrumb,
@@ -24,6 +24,7 @@ function AppPage() {
   const [app, setApp] = useState<App | null>(null);
   const appStatuses = useStore(appStore, (state) => state.appStatuses);
   const isLoadingStatuses = useStore(appStore, (state) => state.isLoadingStatuses);
+  const { apps, isLoading: isLoadingApps } = useApps();
 
   useEffect(() => {
     const app = apps.find((a) => a.name === name);
@@ -33,7 +34,7 @@ function AppPage() {
         loadAppStatuses();
       }
     }
-  }, [name, appStatuses?.installed, appStatuses?.configured]);
+  }, [name, apps, appStatuses?.installed, appStatuses?.configured]);
 
   const handleInstallationChange = (isInstalled: boolean) => {
     if (app) {
@@ -41,7 +42,7 @@ function AppPage() {
     }
   };
 
-  if (isLoadingStatuses || !appStatuses) {
+  if (isLoadingStatuses || isLoadingApps || !appStatuses) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader className="text-gray-800 dark:text-gray-200" />

@@ -2,16 +2,19 @@ use crate::environment::{ensure_npx_shim, get_uvx_path};
 use crate::file_utils::{ensure_config_file, ensure_mcp_servers};
 use dirs;
 use lazy_static::lazy_static;
-use log::info;
+use log::{info, error};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
+use reqwest::blocking::get;
+use std::time::Duration;
 
 lazy_static! {
     static ref CONFIG_CACHE: Mutex<Option<Value>> = Mutex::new(None);
     static ref TEST_CONFIG_PATH: Mutex<Option<PathBuf>> = Mutex::new(None);
+    pub static ref APP_REGISTRY_CACHE: Mutex<Option<Value>> = Mutex::new(None);
 }
 
 // Function to set a test config path - only used in tests
@@ -47,81 +50,66 @@ pub struct AppConfig {
     pub args: Vec<String>,
 }
 
-pub fn get_app_configs() -> Vec<(String, AppConfig)> {
+fn fetch_app_registry() -> Result<Value, String> {
+    // Check if we have a cached registry
+    let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
+    if let Some(ref registry) = *cache {
+        return Ok(registry.clone());
+    }
+
+    // Fetch the registry from GitHub
+    let registry_url = "https://raw.githubusercontent.com/fleuristes/app-registry/refs/heads/main/apps.json";
+    let response = get(registry_url)
+        .map_err(|e| format!("Failed to fetch app registry: {}", e))?;
+    
+    let registry_json: Value = response
+        .json()
+        .map_err(|e| format!("Failed to parse app registry JSON: {}", e))?;
+    
+    // Cache the registry
+    *cache = Some(registry_json.clone());
+    Ok(registry_json)
+}
+
+pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
     let npx_shim = ensure_npx_shim().unwrap_or_else(|_| "npx".to_string());
     let uvx_path = get_uvx_path().unwrap_or_else(|_| "uvx".to_string());
-
-    vec![
-        (
-            "Browser".to_string(),
+    
+    let registry = fetch_app_registry()?;
+    let apps = registry.as_array().ok_or("App registry is not an array")?;
+    
+    let mut configs = Vec::new();
+    
+    for app in apps {
+        let name = app["name"].as_str().ok_or("App name is missing")?.to_string();
+        let config = app["config"].as_object().ok_or("App config is missing")?;
+        
+        let mcp_key = config["mcpKey"].as_str().ok_or("mcpKey is missing")?.to_string();
+        let runtime = config["runtime"].as_str().ok_or("runtime is missing")?;
+        
+        let command = match runtime {
+            "npx" => npx_shim.clone(),
+            "uvx" => uvx_path.clone(),
+            _ => runtime.to_string(),
+        };
+        
+        let args_value = config["args"].as_array().ok_or("args is missing")?;
+        let args: Vec<String> = args_value
+            .iter()
+            .map(|arg| arg.as_str().unwrap_or("").to_string())
+            .collect();
+        
+        configs.push((
+            name,
             AppConfig {
-                mcp_key: "puppeteer".to_string(),
-                command: npx_shim.clone(),
-                args: vec![
-                    "-y".to_string(),
-                    "@modelcontextprotocol/server-puppeteer".to_string(),
-                    "--debug".to_string(),
-                ],
+                mcp_key,
+                command,
+                args,
             },
-        ),
-        (
-            "Time".to_string(),
-            AppConfig {
-                mcp_key: "time".to_string(),
-                command: uvx_path.clone(),
-                args: vec![
-                    "--from".to_string(),
-                    "git+https://github.com/modelcontextprotocol/servers.git#subdirectory=src/time"
-                        .to_string(),
-                    "mcp-server-time".to_string(),
-                ],
-            },
-        ),
-        (
-            "Hacker News".to_string(),
-            AppConfig {
-                mcp_key: "hn".to_string(),
-                command: uvx_path.clone(),
-                args: vec![
-                    "--from".to_string(),
-                    "git+https://github.com/erithwik/mcp-hn".to_string(),
-                    "mcp-hn".to_string(),
-                ],
-            },
-        ),
-        (
-            "Linear".to_string(),
-            AppConfig {
-                mcp_key: "linear".to_string(),
-                command: npx_shim.clone(),
-                args: vec!["-y".to_string(), "linear-mcp-server".to_string()],
-            },
-        ),
-        (
-            "Gmail".to_string(),
-            AppConfig {
-                mcp_key: "gmail".to_string(),
-                command: String::new(),
-                args: vec![],
-            },
-        ),
-        (
-            "Google Calendar".to_string(),
-            AppConfig {
-                mcp_key: "calendar".to_string(),
-                command: String::new(),
-                args: vec![],
-            },
-        ),
-        (
-            "Google Drive".to_string(),
-            AppConfig {
-                mcp_key: "drive".to_string(),
-                command: String::new(),
-                args: vec![],
-            },
-        ),
-    ]
+        ));
+    }
+    
+    Ok(configs)
 }
 
 pub fn get_config() -> Result<Value, String> {
@@ -182,7 +170,7 @@ pub fn preload_dependencies() -> Result<(), String> {
 pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<String, String> {
     info!("Installing app: {}", app_name);
 
-    let configs = get_app_configs();
+    let configs = get_app_configs()?;
     if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
         let mut config_json = get_config()?;
         let mcp_key = config.mcp_key.clone();
@@ -226,7 +214,7 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
 pub fn uninstall(app_name: &str) -> Result<String, String> {
     info!("Uninstalling app: {}", app_name);
 
-    if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
+    if let Some((_, config)) = get_app_configs()?.iter().find(|(name, _)| name == app_name) {
         let mut config_json = get_config()?;
 
         if let Some(mcp_servers) = config_json
@@ -252,7 +240,7 @@ pub fn uninstall(app_name: &str) -> Result<String, String> {
 
 #[tauri::command]
 pub fn is_installed(app_name: &str) -> Result<bool, String> {
-    if let Some((_, config)) = get_app_configs().iter().find(|(name, _)| name == app_name) {
+    if let Some((_, config)) = get_app_configs()?.iter().find(|(name, _)| name == app_name) {
         let config_json = get_config()?;
 
         if let Some(mcp_servers) = config_json.get("mcpServers") {
@@ -271,7 +259,7 @@ pub fn is_installed(app_name: &str) -> Result<bool, String> {
 pub fn save_app_env(app_name: &str, env_values: serde_json::Value) -> Result<String, String> {
     println!("Saving ENV values for app: {}", app_name);
 
-    let configs = get_app_configs();
+    let configs = get_app_configs()?;
     if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
         let mut config_json = get_config()?;
         let mcp_key = config.mcp_key.clone();
@@ -309,7 +297,7 @@ pub fn save_app_env(app_name: &str, env_values: serde_json::Value) -> Result<Str
 pub fn get_app_env(app_name: &str) -> Result<Value, String> {
     println!("Getting ENV values for app: {}", app_name);
 
-    let configs = get_app_configs();
+    let configs = get_app_configs()?;
     if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
         let config_json = get_config()?;
         let mcp_key = config.mcp_key.clone();
@@ -337,7 +325,7 @@ pub fn get_app_statuses() -> Result<Value, String> {
     let mut installed_apps = json!({});
     let mut configured_apps = json!({});
 
-    let app_configs = get_app_configs();
+    let app_configs = get_app_configs()?;
 
     if let Some(mcp_servers) = config_json.get("mcpServers").and_then(|v| v.as_object()) {
         for (app_name, config) in app_configs {
@@ -350,4 +338,16 @@ pub fn get_app_statuses() -> Result<Value, String> {
         "installed": installed_apps,
         "configured": configured_apps
     }))
+}
+
+// New function to expose the app registry to the frontend
+#[tauri::command]
+pub fn get_app_registry() -> Result<Value, String> {
+    info!("Fetching app registry...");
+    let result = fetch_app_registry();
+    match &result {
+        Ok(value) => info!("Successfully fetched app registry: {}", value),
+        Err(e) => error!("Failed to fetch app registry: {}", e),
+    }
+    result
 }

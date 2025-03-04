@@ -55,7 +55,7 @@ export function AppHeader({ app, isConfigured, isInstalled, onInstallationChange
           </div>
         </div>
         <div className="mt-8">
-          <h2 className="text-lg font-semibold mb-2">About this app</h2>
+          <h2 className="text-lg font-semibold mb-2">About</h2>
           <p className="text-gray-600 dark:text-gray-100">{app.description}</p>
         </div>
       </div>
