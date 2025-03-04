@@ -14,7 +14,7 @@ use std::time::Duration;
 lazy_static! {
     static ref CONFIG_CACHE: Mutex<Option<Value>> = Mutex::new(None);
     static ref TEST_CONFIG_PATH: Mutex<Option<PathBuf>> = Mutex::new(None);
-    static ref APP_REGISTRY_CACHE: Mutex<Option<Value>> = Mutex::new(None);
+    pub static ref APP_REGISTRY_CACHE: Mutex<Option<Value>> = Mutex::new(None);
 }
 
 // Function to set a test config path - only used in tests
