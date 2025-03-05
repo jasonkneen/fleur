@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react';
-import { useStore } from '@tanstack/react-store';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { appStore, loadAppStatuses, updateAppInstallation } from '@/store/app';
-import { useApps } from '../appRegistry';
-import { Loader } from '../components/ui/loader';
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { useStore } from "@tanstack/react-store";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { appStore, loadAppStatuses, updateAppInstallation } from "@/store/app";
+import { Loader } from "../components/ui/loader";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from '../components/ui/breadcrumb';
-import { AppDetail } from '../components/app/AppDetail';
+} from "../components/ui/breadcrumb";
+import { AppDetail } from "../components/app/AppDetail";
+import { useApps } from "../appRegistry";
 
 import type { App } from "@/types/components/app";
 
@@ -23,14 +24,32 @@ function AppPage() {
   const { name } = Route.useParams();
   const [app, setApp] = useState<App | null>(null);
   const appStatuses = useStore(appStore, (state) => state.appStatuses);
-  const isLoadingStatuses = useStore(appStore, (state) => state.isLoadingStatuses);
+  const isLoadingStatuses = useStore(
+    appStore,
+    (state) => state.isLoadingStatuses
+  );
   const { apps, isLoading: isLoadingApps } = useApps();
+
+  // Log app statuses when they change
+  useEffect(() => {
+    if (appStatuses) {
+      invoke("log_from_frontend", {
+        level: "info",
+        message: `App statuses for ${name}: ${JSON.stringify(appStatuses)}`,
+      }).catch((error) => {
+        console.error("Failed to log app statuses:", error);
+      });
+    }
+  }, [appStatuses, name]);
 
   useEffect(() => {
     const app = apps.find((a) => a.name === name);
     if (app) {
       setApp(app);
-      if (!appStatuses?.installed?.[app.name] && !appStatuses?.configured?.[app.name]) {
+      if (
+        !appStatuses?.installed?.[app.name] &&
+        !appStatuses?.configured?.[app.name]
+      ) {
         loadAppStatuses();
       }
     }
@@ -51,7 +70,9 @@ function AppPage() {
   }
 
   if (!app) {
-    return <div className="text-gray-900 dark:text-gray-100">App not found</div>;
+    return (
+      <div className="text-gray-900 dark:text-gray-100">App not found</div>
+    );
   }
 
   return (
@@ -66,7 +87,9 @@ function AppPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <span className="text-zinc-900 dark:text-zinc-100">{app.name}</span>
+              <span className="text-zinc-900 dark:text-zinc-100">
+                {app.name}
+              </span>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>

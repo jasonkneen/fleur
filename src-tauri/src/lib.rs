@@ -60,6 +60,17 @@ async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
     Ok(())
 }
 
+#[tauri::command]
+fn log_from_frontend(level: String, message: String) {
+    match level.as_str() {
+        "info" => info!("[Frontend] {}", message),
+        "warn" => log::warn!("[Frontend] {}", message),
+        "error" => error!("[Frontend] {}", message),
+        "debug" => log::debug!("[Frontend] {}", message),
+        _ => info!("[Frontend] {}", message),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize logger
@@ -85,6 +96,7 @@ pub fn run() {
             app::get_app_env,
             app::get_app_registry,
             environment::ensure_environment,
+            log_from_frontend,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
