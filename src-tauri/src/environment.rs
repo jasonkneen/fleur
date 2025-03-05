@@ -128,7 +128,10 @@ pub fn get_uvx_path() -> Result<String, String> {
 
 pub fn get_nvm_node_paths() -> Result<(String, String), String> {
     if is_test_mode() {
-        return Ok(("/test/node".to_string(), "/test/npx".to_string()));
+        return Ok((
+            "/test/.nvm/versions/node/v20.9.0/bin/node".to_string(),
+            "/test/.nvm/versions/node/v20.9.0/bin/npx".to_string(),
+        ));
     }
 
     let shell_command = format!(
