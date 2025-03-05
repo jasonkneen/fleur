@@ -250,9 +250,22 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
             app_name, command, args
         );
 
-        // Skip command path validation in test mode
-        if !crate::environment::is_test_mode() {
-            // Validate the command exists and is executable
+        // Handle path validation differently in test mode
+        if crate::environment::is_test_mode() {
+            // In test mode, verify the command matches our expected test paths
+            if !command.starts_with("/test/") {
+                error!(
+                    "Invalid test command path '{}' for app '{}'. Must start with /test/",
+                    command, app_name
+                );
+                return Err(format!(
+                    "Invalid test command path '{}' for app '{}'",
+                    command, app_name
+                ));
+            }
+            debug!("Test mode: validated test path: {}", command);
+        } else {
+            // In non-test mode, validate the command exists and is executable
             if !std::path::Path::new(&command).exists() {
                 error!(
                     "Command path '{}' for app '{}' does not exist",
@@ -283,13 +296,16 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
             mcp_servers.insert(mcp_key.clone(), app_config);
             save_config(&config_json)?;
 
-            std::thread::spawn(move || {
-                if command.contains("npx") && args.len() > 1 {
-                    let package = &args[1];
-                    info!("Pre-caching npm package: {}", package);
-                    let _ = Command::new("npm").args(["cache", "add", package]).output();
-                }
-            });
+            // Only attempt to pre-cache npm packages if not in test mode
+            if !crate::environment::is_test_mode() {
+                std::thread::spawn(move || {
+                    if command.contains("npx") && args.len() > 1 {
+                        let package = &args[1];
+                        info!("Pre-caching npm package: {}", package);
+                        let _ = Command::new("npm").args(["cache", "add", package]).output();
+                    }
+                });
+            }
 
             info!("Successfully installed app: {}", app_name);
             Ok(format!("Added {} configuration for {}", mcp_key, app_name))
