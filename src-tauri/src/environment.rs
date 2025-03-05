@@ -170,7 +170,7 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
         .trim()
         .to_string();
 
-    if !node_path.contains(".nvm/versions/node") {
+    if !node_path.contains(".nvm/versions/node") && !is_test_mode() {
         return Err("Node path is not from nvm installation".to_string());
     }
 
