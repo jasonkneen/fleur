@@ -16,15 +16,19 @@ if ! command -v curl &> /dev/null; then
     exit 1
 fi
 
-# Create temp directory for downloads
-TEMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TEMP_DIR"' EXIT
+# Create a directory for downloads
+BUILD_DIR="$HOME/.fleur-build"
+mkdir -p "$BUILD_DIR"
+echo "Using build directory: $BUILD_DIR"
+
+# Clean up on exit or error
+trap 'echo "Cleaning up build directory..."; rm -rf "$BUILD_DIR"' EXIT
 
 # Download pre-built frontend assets
 echo "Downloading pre-built frontend assets..."
 FRONTEND_URL="https://github.com/fleuristes/fleur/releases/latest/download/dist.tar.gz"
-curl -L "$FRONTEND_URL" -o "$TEMP_DIR/dist.tar.gz"
-tar xzf "$TEMP_DIR/dist.tar.gz" -C "$TEMP_DIR"
+curl -L "$FRONTEND_URL" -o "$BUILD_DIR/dist.tar.gz"
+tar xzf "$BUILD_DIR/dist.tar.gz" -C "$BUILD_DIR"
 
 # Install Rust if not already installed (required for building)
 if ! command -v rustc &> /dev/null; then
@@ -35,16 +39,20 @@ else
     echo "Rust is already installed."
 fi
 
+# Install cargo-tauri CLI
+echo "Installing cargo-tauri CLI..."
+cargo install tauri-cli
+
 # Download the source code (without git)
 echo "Downloading source code..."
-curl -L "https://github.com/fleuristes/fleur/archive/refs/heads/main.tar.gz" -o "$TEMP_DIR/source.tar.gz"
-tar xzf "$TEMP_DIR/source.tar.gz" -C "$TEMP_DIR"
-cd "$TEMP_DIR/fleur-main"
+curl -L "https://github.com/fleuristes/fleur/archive/refs/heads/main.tar.gz" -o "$BUILD_DIR/source.tar.gz"
+tar xzf "$BUILD_DIR/source.tar.gz" -C "$BUILD_DIR"
+cd "$BUILD_DIR/fleur-main"
 
 # Copy pre-built frontend assets
 echo "Setting up frontend assets..."
 rm -rf src-tauri/dist
-cp -r "$TEMP_DIR/dist" src-tauri/
+cp -r "$BUILD_DIR/dist" src-tauri/
 
 # Create a temporary config for building without frontend
 echo "Configuring build..."
