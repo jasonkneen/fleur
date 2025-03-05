@@ -50,44 +50,6 @@ else
     echo "Rust is already installed."
 fi
 
-# Install uv if not already installed
-if ! command -v uv &> /dev/null; then
-    echo "Installing uv..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    # Source the updated PATH to use uv immediately
-    export PATH="$HOME/.cargo/bin:$PATH"
-else
-    echo "uv is already installed."
-fi
-
-# Install nvm if not already installed
-export NVM_DIR="$HOME/.nvm"
-if [ ! -d "$NVM_DIR" ]; then
-    echo "Installing nvm..."
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-fi
-
-# Load nvm regardless of whether it was just installed or already existed
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-echo "nvm is ready."
-
-# Install specified node version
-NODE_VERSION="v20.9.0"
-if ! command -v nvm &> /dev/null; then
-    echo "Error: nvm command not available. Something went wrong with the nvm setup."
-    exit 1
-fi
-
-echo "Checking Node.js version..."
-if ! nvm ls "$NODE_VERSION" | grep -q "$NODE_VERSION"; then
-    echo "Installing Node.js $NODE_VERSION..."
-    nvm install "$NODE_VERSION"
-else
-    echo "Node.js $NODE_VERSION is already installed."
-fi
-nvm use "$NODE_VERSION"
-
 # Install cargo-tauri CLI
 echo "Installing cargo-tauri CLI..."
 cargo install tauri-cli
