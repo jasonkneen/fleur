@@ -12,6 +12,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_LOG: debug
+  RUST_BACKTRACE: full
 
 jobs:
   test:
