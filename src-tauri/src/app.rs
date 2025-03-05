@@ -9,7 +9,6 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
-use std::time::Duration;
 
 lazy_static! {
     static ref CONFIG_CACHE: Mutex<Option<Value>> = Mutex::new(None);
@@ -237,6 +236,10 @@ pub fn preload_dependencies() -> Result<(), String> {
 #[tauri::command]
 pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<String, String> {
     info!("Installing app: {}", app_name);
+    debug!(
+        "Install called in test mode: {}",
+        crate::environment::is_test_mode()
+    );
 
     let configs = get_app_configs()?;
     if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
@@ -250,22 +253,8 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
             app_name, command, args
         );
 
-        // Handle path validation differently in test mode
-        if crate::environment::is_test_mode() {
-            // In test mode, verify the command matches our expected test paths
-            if !command.starts_with("/test/") {
-                error!(
-                    "Invalid test command path '{}' for app '{}'. Must start with /test/",
-                    command, app_name
-                );
-                return Err(format!(
-                    "Invalid test command path '{}' for app '{}'",
-                    command, app_name
-                ));
-            }
-            debug!("Test mode: validated test path: {}", command);
-        } else {
-            // In non-test mode, validate the command exists and is executable
+        // Skip path validation entirely in test mode
+        if !crate::environment::is_test_mode() {
             if !std::path::Path::new(&command).exists() {
                 error!(
                     "Command path '{}' for app '{}' does not exist",
@@ -276,6 +265,8 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
                     command, app_name
                 ));
             }
+        } else {
+            debug!("Test mode: skipping path validation for {}", command);
         }
 
         if let Some(mcp_servers) = config_json

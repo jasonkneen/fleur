@@ -9,20 +9,18 @@ static NVM_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NODE_INSTALLED: AtomicBool = AtomicBool::new(false);
 static ENVIRONMENT_SETUP_STARTED: AtomicBool = AtomicBool::new(false);
 static NODE_VERSION: &str = "v20.9.0";
-static mut IS_TEST_MODE: bool = false;
+static IS_TEST_MODE: AtomicBool = AtomicBool::new(false);
 
 // Lock to prevent concurrent environment setup operations
 static ENVIRONMENT_SETUP_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 #[cfg(feature = "test-utils")]
 pub fn set_test_mode(enabled: bool) {
-    unsafe {
-        IS_TEST_MODE = enabled;
-    }
+    IS_TEST_MODE.store(enabled, Ordering::SeqCst);
 }
 
 pub fn is_test_mode() -> bool {
-    unsafe { IS_TEST_MODE }
+    IS_TEST_MODE.load(Ordering::SeqCst)
 }
 
 pub fn get_npx_shim_path() -> std::path::PathBuf {

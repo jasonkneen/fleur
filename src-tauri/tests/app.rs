@@ -4,7 +4,7 @@ use fleur_lib::{
     app::{self, get_app_configs, set_test_config_path},
     environment,
 };
-use log::{debug, error, info, warn};
+use log::debug;
 use serde_json::Value;
 use serial_test::serial;
 use std::{thread, time::Duration};
