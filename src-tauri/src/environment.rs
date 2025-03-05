@@ -127,10 +127,8 @@ pub fn get_uvx_path() -> Result<String, String> {
 }
 
 pub fn get_nvm_node_paths() -> Result<(String, String), String> {
-    // Add debug logging to help diagnose issues
     debug!("get_nvm_node_paths called, test_mode: {}", is_test_mode());
 
-    // Always return test paths in test mode
     if is_test_mode() {
         debug!("Using test mode paths for nvm/node");
         return Ok((
@@ -175,8 +173,8 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
         .trim()
         .to_string();
 
-    // Only validate the node path if we're not in test mode
-    if !node_path.contains(".nvm/versions/node") {
+    // Only validate paths in non-test mode
+    if !is_test_mode() && !node_path.contains(".nvm/versions/node") {
         debug!("Node path validation failed: {}", node_path);
         return Err("Node path is not from nvm installation".to_string());
     }
