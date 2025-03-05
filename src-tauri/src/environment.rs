@@ -1,8 +1,8 @@
-use log::{info, error, debug};
+use log::{debug, error, info};
+use once_cell::sync::Lazy;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
-use once_cell::sync::Lazy;
 
 static UV_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NVM_INSTALLED: AtomicBool = AtomicBool::new(false);
@@ -63,10 +63,7 @@ fn find_existing_uvx() -> Option<String> {
     }
 
     // Try finding with which command
-    match Command::new("which")
-        .arg("uvx")
-        .output()
-    {
+    match Command::new("which").arg("uvx").output() {
         Ok(output) if output.status.success() => {
             let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
             info!("Found existing uvx using 'which' at {}", path);
@@ -109,11 +106,21 @@ pub fn get_uvx_path() -> Result<String, String> {
         .map_err(|e| format!("Failed to get uv path: {}", e))?;
 
     if uv_output.status.success() {
-        let uv_path = String::from_utf8_lossy(&uv_output.stdout).trim().to_string();
-        let uv_dir = std::path::Path::new(&uv_path).parent().ok_or("Failed to get parent directory of uv")?;
+        let uv_path = String::from_utf8_lossy(&uv_output.stdout)
+            .trim()
+            .to_string();
+        let uv_dir = std::path::Path::new(&uv_path)
+            .parent()
+            .ok_or("Failed to get parent directory of uv")?;
 
-        error!("uv installed at {} but uvx is not available. This is unexpected.", uv_path);
-        return Err("uvx not found after installing uv. Please install it manually or check your PATH.".to_string());
+        error!(
+            "uv installed at {} but uvx is not available. This is unexpected.",
+            uv_path
+        );
+        return Err(
+            "uvx not found after installing uv. Please install it manually or check your PATH."
+                .to_string(),
+        );
     }
 
     Err("uvx not found in PATH and installation failed. Please install it manually.".to_string())
@@ -124,13 +131,16 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
         return Ok(("/test/node".to_string(), "/test/npx".to_string()));
     }
 
-    let shell_command = format!(r#"
+    let shell_command = format!(
+        r#"
         export NVM_DIR="$HOME/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
         nvm use {} > /dev/null 2>&1
         which node
         which npx
-    "#, NODE_VERSION);
+    "#,
+        NODE_VERSION
+    );
 
     let output = Command::new("bash")
         .arg("-c")
@@ -288,7 +298,10 @@ fn install_node() -> Result<(), String> {
     // Double-check node version to avoid race conditions
     match check_node_version() {
         Ok(version) if version == NODE_VERSION => {
-            info!("Node.js {} is already installed, skipping installation", NODE_VERSION);
+            info!(
+                "Node.js {} is already installed, skipping installation",
+                NODE_VERSION
+            );
             NODE_INSTALLED.store(true, Ordering::Relaxed);
             return Ok(());
         }
@@ -302,11 +315,14 @@ fn install_node() -> Result<(), String> {
         return Err("nvm is required to install Node.js".to_string());
     }
 
-    let shell_command = format!(r#"
+    let shell_command = format!(
+        r#"
         export NVM_DIR="$HOME/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
         nvm install {} --no-progress
-    "#, NODE_VERSION);
+    "#,
+        NODE_VERSION
+    );
 
     let output = Command::new("bash")
         .arg("-c")
@@ -426,9 +442,7 @@ fn check_uv_installed() -> bool {
     }
 
     // Then check if we can run uv to confirm it's properly installed
-    let version_command = Command::new("uv")
-        .arg("--version")
-        .output();
+    let version_command = Command::new("uv").arg("--version").output();
 
     match version_command {
         Ok(output) if output.status.success() => {
@@ -493,22 +507,22 @@ fn install_uv() -> Result<(), String> {
     if uv_path.exists() {
         info!("uv found at {}", uv_path.display());
         if !uvx_path.exists() {
-            info!("uvx not found at {} after uv installation, this is unexpected", uvx_path.display());
+            info!(
+                "uvx not found at {} after uv installation, this is unexpected",
+                uvx_path.display()
+            );
         } else {
             info!("uvx found at {}", uvx_path.display());
         }
     } else {
         // Check if uv was installed elsewhere
-        match Command::new("which")
-            .arg("uv")
-            .output()
-        {
+        match Command::new("which").arg("uv").output() {
             Ok(output) if output.status.success() => {
                 let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
                 info!("uv installed at {} (not in the expected location)", path);
             }
             _ => {
-              info!("uv not found in PATH after installation");
+                info!("uv not found in PATH after installation");
             }
         }
     }
@@ -532,7 +546,10 @@ fn ensure_node_environment() -> Result<String, String> {
     match check_node_version() {
         Ok(version) => {
             if version != NODE_VERSION {
-                info!("Node.js {} found, but {} required. Installing...", version, NODE_VERSION);
+                info!(
+                    "Node.js {} found, but {} required. Installing...",
+                    version, NODE_VERSION
+                );
                 install_node()?;
             } else {
                 debug!("Node.js {} is already installed", NODE_VERSION);
