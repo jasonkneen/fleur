@@ -233,6 +233,11 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
         let command = config.command.clone();
         let args = config.args.clone();
 
+        debug!(
+            "Installing {} with command: {}, args: {:?}",
+            app_name, command, args
+        );
+
         // Skip command path validation in test mode
         if !crate::environment::is_test_mode() {
             // Validate the command exists and is executable
@@ -262,6 +267,7 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
                 app_config["env"] = env;
             }
 
+            debug!("Adding config for {}: {:?}", mcp_key, app_config);
             mcp_servers.insert(mcp_key.clone(), app_config);
             save_config(&config_json)?;
 
@@ -281,8 +287,9 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
             Err(err)
         }
     } else {
-        warn!("No configuration available for: {}", app_name);
-        Ok(format!("No configuration available for {}", app_name))
+        let err = format!("No configuration available for: {}", app_name);
+        warn!("{}", err);
+        Ok(err)
     }
 }
 

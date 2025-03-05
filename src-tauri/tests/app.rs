@@ -1,6 +1,9 @@
 mod common;
 
-use fleur_lib::app::{self, get_app_configs, set_test_config_path};
+use fleur_lib::{
+    app::{self, get_app_configs, set_test_config_path},
+    environment,
+};
 use serde_json::Value;
 use serial_test::serial;
 use std::{thread, time::Duration};
@@ -9,17 +12,21 @@ use uuid::Uuid;
 
 #[test]
 fn test_get_app_configs() {
+    environment::set_test_mode(true);
     let configs = get_app_configs().expect("Failed to get app configs");
     let browser = configs
         .iter()
         .find(|(name, _)| name == "Browser")
         .expect("Browser app not found");
     assert_eq!(browser.1.mcp_key, "puppeteer");
+    environment::set_test_mode(false);
 }
 
 #[test]
 #[serial]
 fn test_install() {
+    environment::set_test_mode(true);
+
     // Create a direct test with a unique ID
     let test_id = Uuid::new_v4().to_string();
     let temp_dir = tempfile::tempdir().unwrap();
@@ -41,9 +48,26 @@ fn test_install() {
     // Set the test config path
     set_test_config_path(Some(config_path.clone()));
 
+    // Set up test app registry
+    {
+        let mut cache = app::APP_REGISTRY_CACHE.lock().unwrap();
+        *cache = Some(serde_json::json!([{
+            "name": "Browser",
+            "config": {
+                "mcpKey": "puppeteer",
+                "runtime": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-puppeteer", "--debug"]
+            }
+        }]));
+    }
+
     // Install the app
     let result = app::install("Browser", None);
-    assert!(result.is_ok());
+    assert!(
+        result.is_ok(),
+        "Install failed with error: {:?}",
+        result.err()
+    );
 
     // Wait and verify config file
     thread::sleep(Duration::from_millis(100));
@@ -59,13 +83,20 @@ fn test_install() {
         "Puppeteer config should be an object"
     );
 
-    // Reset the test config path
+    // Reset the test config path and cache
     set_test_config_path(None);
+    {
+        let mut cache = app::APP_REGISTRY_CACHE.lock().unwrap();
+        *cache = None;
+    }
+    environment::set_test_mode(false);
 }
 
 #[test]
 #[serial]
 fn test_uninstall() {
+    environment::set_test_mode(true);
+
     // Create a direct test with a unique ID
     let test_id = Uuid::new_v4().to_string();
     let temp_dir = tempfile::tempdir().unwrap();
@@ -112,11 +143,14 @@ fn test_uninstall() {
 
     // Reset the test config path
     set_test_config_path(None);
+    environment::set_test_mode(false);
 }
 
 #[test]
 #[serial]
 fn test_app_status() {
+    environment::set_test_mode(true);
+
     // Create a direct test with a unique ID
     let test_id = Uuid::new_v4().to_string();
     let temp_dir = tempfile::tempdir().unwrap();
@@ -152,11 +186,14 @@ fn test_app_status() {
 
     // Reset the test config path
     set_test_config_path(None);
+    environment::set_test_mode(false);
 }
 
 #[test]
 #[serial]
 fn test_stubbed_app_configs() {
+    environment::set_test_mode(true);
+
     use fleur_lib::app::{self, APP_REGISTRY_CACHE};
     use serde_json::json;
 
@@ -242,4 +279,6 @@ fn test_stubbed_app_configs() {
         let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
         *cache = None;
     }
+
+    environment::set_test_mode(false);
 }
