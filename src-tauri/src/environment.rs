@@ -176,7 +176,7 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
         .to_string();
 
     // Only validate the node path if we're not in test mode
-    if !is_test_mode() && !node_path.contains(".nvm/versions/node") {
+    if !node_path.contains(".nvm/versions/node") {
         debug!("Node path validation failed: {}", node_path);
         return Err("Node path is not from nvm installation".to_string());
     }
@@ -186,6 +186,7 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
 
 pub fn ensure_npx_shim() -> Result<String, String> {
     if is_test_mode() {
+        debug!("Using test mode path for npx shim");
         return Ok("/test/.local/share/fleur/bin/npx-fleur".to_string());
     }
 

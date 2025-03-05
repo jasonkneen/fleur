@@ -29,9 +29,15 @@ pub fn set_test_config_path(path: Option<PathBuf>) {
 
 // Function to get the config path - uses test path if set
 fn get_config_path() -> Result<PathBuf, String> {
+    debug!(
+        "Getting config path, test_mode: {}",
+        crate::environment::is_test_mode()
+    );
+
     // Check if we have a test config path set
     let test_path = TEST_CONFIG_PATH.lock().unwrap();
     if let Some(path) = test_path.clone() {
+        debug!("Using test config path: {}", path.display());
         return Ok(path);
     }
 
@@ -40,6 +46,7 @@ fn get_config_path() -> Result<PathBuf, String> {
         .ok_or("Could not find home directory".to_string())?
         .join("Library/Application Support/Claude/claude_desktop_config.json");
 
+    debug!("Using default config path: {}", default_path.display());
     Ok(default_path)
 }
 
@@ -79,7 +86,10 @@ fn fetch_app_registry() -> Result<Value, String> {
 }
 
 pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
-    debug!("Getting app configurations, test_mode: {}", crate::environment::is_test_mode());
+    debug!(
+        "Getting app configurations, test_mode: {}",
+        crate::environment::is_test_mode()
+    );
 
     // In test mode, use test paths directly
     let (npx_shim, uvx_path) = if crate::environment::is_test_mode() {
@@ -90,22 +100,8 @@ pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
         )
     } else {
         // Get absolute paths, and fail if they can't be obtained
-        let npx_shim = match ensure_npx_shim() {
-            Ok(path) => path,
-            Err(e) => {
-                error!("Failed to get npx shim: {}", e);
-                return Err(format!("Failed to get npx shim: {}", e));
-            }
-        };
-
-        let uvx_path = match get_uvx_path() {
-            Ok(path) => path,
-            Err(e) => {
-                error!("Failed to get uvx path: {}", e);
-                return Err(format!("Failed to get uvx path: {}", e));
-            }
-        };
-
+        let npx_shim = ensure_npx_shim()?;
+        let uvx_path = get_uvx_path()?;
         (npx_shim, uvx_path)
     };
 
@@ -165,6 +161,11 @@ pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
 }
 
 pub fn get_config() -> Result<Value, String> {
+    debug!(
+        "Getting config, test_mode: {}",
+        crate::environment::is_test_mode()
+    );
+
     let mut cache = CONFIG_CACHE.lock().unwrap();
     if let Some(ref config) = *cache {
         debug!("Using cached config");
@@ -427,9 +428,12 @@ pub fn get_app_env(app_name: &str) -> Result<Value, String> {
 
 #[tauri::command]
 pub fn get_app_statuses() -> Result<Value, String> {
-    debug!("Getting app statuses");
-    let config_json = get_config()?;
+    debug!(
+        "Getting app statuses, test_mode: {}",
+        crate::environment::is_test_mode()
+    );
 
+    let config_json = get_config()?;
     let mut installed_apps = json!({});
     let mut configured_apps = json!({});
 
@@ -452,7 +456,10 @@ pub fn get_app_statuses() -> Result<Value, String> {
         }
     }
 
-    info!("Successfully retrieved app statuses");
+    debug!(
+        "Retrieved app statuses: installed={:?}, configured={:?}",
+        installed_apps, configured_apps
+    );
     Ok(json!({
         "installed": installed_apps,
         "configured": configured_apps

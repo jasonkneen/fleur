@@ -150,7 +150,7 @@ fn test_uninstall() {
 #[test]
 #[serial]
 fn test_app_status() {
-    // Set test mode
+    // Set test mode at the very beginning
     environment::set_test_mode(true);
     debug!("test_app_status: Starting test with test_mode set to true");
 
@@ -188,31 +188,51 @@ fn test_app_status() {
         }]));
     }
 
-    debug!("test_app_status: App registry set up, test_mode status: {}", environment::is_test_mode());
+    debug!(
+        "test_app_status: App registry set up, test_mode status: {}",
+        environment::is_test_mode()
+    );
 
-    // Create a separate scope for the core test logic
-    {
-        // Test initial status
-        debug!("test_app_status: Getting app statuses, test_mode: {}", environment::is_test_mode());
-        let result = match app::get_app_statuses() {
-            Ok(r) => r,
-            Err(e) => {
-                panic!("get_app_statuses failed: {} (test_mode={})", e, environment::is_test_mode());
-            }
-        };
+    // Test initial status
+    debug!(
+        "test_app_status: Getting app statuses, test_mode: {}",
+        environment::is_test_mode()
+    );
+    let result = app::get_app_statuses();
+    assert!(
+        result.is_ok(),
+        "Failed to get app statuses: {:?}",
+        result.err()
+    );
+    let status = result.unwrap();
+    assert!(status["installed"].is_object());
+    assert!(status["configured"].is_object());
 
-        assert!(result["installed"].is_object());
-        assert!(result["configured"].is_object());
+    // Install and check status
+    debug!(
+        "test_app_status: Installing Browser app, test_mode: {}",
+        environment::is_test_mode()
+    );
+    let result = app::install("Browser", None);
+    assert!(
+        result.is_ok(),
+        "Install failed with error: {:?}",
+        result.err()
+    );
+    thread::sleep(Duration::from_millis(100));
 
-        // Install and check status
-        debug!("test_app_status: Installing Browser app, test_mode: {}", environment::is_test_mode());
-        app::install("Browser", None).unwrap();
-        thread::sleep(Duration::from_millis(100));
-
-        debug!("test_app_status: Getting app statuses again, test_mode: {}", environment::is_test_mode());
-        let result = app::get_app_statuses().unwrap();
-        assert!(result["installed"]["Browser"].as_bool().unwrap());
-    }
+    debug!(
+        "test_app_status: Getting app statuses again, test_mode: {}",
+        environment::is_test_mode()
+    );
+    let result = app::get_app_statuses();
+    assert!(
+        result.is_ok(),
+        "Failed to get app statuses: {:?}",
+        result.err()
+    );
+    let status = result.unwrap();
+    assert!(status["installed"]["Browser"].as_bool().unwrap());
 
     // Clean up resources
     debug!("test_app_status: Cleaning up resources");
