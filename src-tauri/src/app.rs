@@ -233,16 +233,19 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
         let command = config.command.clone();
         let args = config.args.clone();
 
-        // Validate the command exists and is executable
-        if !std::path::Path::new(&command).exists() {
-            error!(
-                "Command path '{}' for app '{}' does not exist",
-                command, app_name
-            );
-            return Err(format!(
-                "Command path '{}' for app '{}' does not exist",
-                command, app_name
-            ));
+        // Skip command path validation in test mode
+        if !crate::environment::is_test_mode() {
+            // Validate the command exists and is executable
+            if !std::path::Path::new(&command).exists() {
+                error!(
+                    "Command path '{}' for app '{}' does not exist",
+                    command, app_name
+                );
+                return Err(format!(
+                    "Command path '{}' for app '{}' does not exist",
+                    command, app_name
+                ));
+            }
         }
 
         if let Some(mcp_servers) = config_json

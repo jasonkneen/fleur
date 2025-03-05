@@ -21,7 +21,7 @@ pub fn set_test_mode(enabled: bool) {
     }
 }
 
-fn is_test_mode() -> bool {
+pub fn is_test_mode() -> bool {
     unsafe { IS_TEST_MODE }
 }
 
