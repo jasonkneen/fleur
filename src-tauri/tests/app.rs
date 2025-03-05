@@ -1,242 +1,351 @@
 mod common;
 
 use fleur_lib::{
-    app::{self, get_app_configs, set_test_config_path},
+    app::{self, APP_REGISTRY_CACHE},
     environment,
 };
 use log::debug;
-use serde_json::Value;
+use serde_json::{json, Value};
 use serial_test::serial;
 use std::{thread, time::Duration};
 use tempfile;
 use uuid::Uuid;
 
-#[test]
-fn test_get_app_configs() {
-    environment::set_test_mode(true);
-    let configs = get_app_configs().expect("Failed to get app configs");
-    let browser = configs
-        .iter()
-        .find(|(name, _)| name == "Browser")
-        .expect("Browser app not found");
-    assert_eq!(browser.1.mcp_key, "puppeteer");
-    environment::set_test_mode(false);
-}
-
-#[test]
-#[serial]
-fn test_install() {
-    environment::set_test_mode(true);
-
-    // Create a direct test with a unique ID
-    let test_id = Uuid::new_v4().to_string();
-    let temp_dir = tempfile::tempdir().unwrap();
-    let config_path = temp_dir
-        .path()
-        .join(format!("test_config_{}.json", test_id));
-
-    // Create initial config
-    let initial_config = serde_json::json!({
-        "mcpServers": {}
-    });
-
-    std::fs::write(
-        &config_path,
-        serde_json::to_string_pretty(&initial_config).unwrap(),
-    )
-    .unwrap();
-
-    // Set the test config path
-    set_test_config_path(Some(config_path.clone()));
-
-    // Set up test app registry
-    {
-        let mut cache = app::APP_REGISTRY_CACHE.lock().unwrap();
-        *cache = Some(serde_json::json!([{
-            "name": "Browser",
-            "config": {
-                "mcpKey": "puppeteer",
-                "runtime": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-puppeteer", "--debug"]
-            }
-        }]));
-    }
-
-    // Install the app
-    let result = app::install("Browser", None);
-    assert!(
-        result.is_ok(),
-        "Install failed with error: {:?}",
-        result.err()
-    );
-
-    // Wait and verify config file
-    thread::sleep(Duration::from_millis(100));
-
-    // Read directly from the file to verify it was updated
-    let config_str = std::fs::read_to_string(&config_path).unwrap();
-    let config: Value = serde_json::from_str(&config_str).unwrap();
-
-    // Check if puppeteer key exists and has expected values
-    let puppeteer = &config["mcpServers"]["puppeteer"];
-    assert!(
-        puppeteer.is_object(),
-        "Puppeteer config should be an object"
-    );
-
-    // Reset the test config path and cache
-    set_test_config_path(None);
-    {
-        let mut cache = app::APP_REGISTRY_CACHE.lock().unwrap();
-        *cache = None;
-    }
-    environment::set_test_mode(false);
-}
-
-#[test]
-#[serial]
-fn test_uninstall() {
-    environment::set_test_mode(true);
-
-    // Create a direct test with a unique ID
-    let test_id = Uuid::new_v4().to_string();
-    let temp_dir = tempfile::tempdir().unwrap();
-    let config_path = temp_dir
-        .path()
-        .join(format!("test_config_{}.json", test_id));
-
-    // Create initial config with puppeteer already installed
-    let initial_config = serde_json::json!({
-        "mcpServers": {
-            "puppeteer": {
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-puppeteer", "--debug"]
-            }
-        }
-    });
-
-    std::fs::write(
-        &config_path,
-        serde_json::to_string_pretty(&initial_config).unwrap(),
-    )
-    .unwrap();
-
-    // Set the test config path
-    set_test_config_path(Some(config_path.clone()));
-
-    // Uninstall the app
-    let result = app::uninstall("Browser");
-    assert!(result.is_ok());
-
-    // Wait and verify config file
-    thread::sleep(Duration::from_millis(100));
-
-    // Verify config was removed
-    let config_str = std::fs::read_to_string(&config_path).unwrap();
-    let config: Value = serde_json::from_str(&config_str).unwrap();
-
-    // Check if puppeteer key was removed
-    let puppeteer = &config["mcpServers"]["puppeteer"];
-    assert!(
-        puppeteer.is_null(),
-        "Puppeteer config should be null after uninstall"
-    );
-
-    // Reset the test config path
-    set_test_config_path(None);
-    environment::set_test_mode(false);
-}
-
-#[test]
-#[serial]
-fn test_stubbed_app_configs() {
-    environment::set_test_mode(true);
-
-    use fleur_lib::app::{self, APP_REGISTRY_CACHE};
-    use serde_json::json;
-
-    // Create the stubbed app registry
-    let stubbed_registry = json!([{
+fn setup_test_registry() {
+    let test_registry = json!([{
         "name": "Browser",
-        "description": "This is a browser app that allows Claude to navigate to any website, take screenshots, and interact with the page.",
+        "description": "Web browser",
         "icon": {
-          "type": "url",
-          "url": {
-            "light": "https://raw.githubusercontent.com/fleuristes/app-registry/refs/heads/main/assets/browser.svg",
-            "dark": "https://raw.githubusercontent.com/fleuristes/app-registry/refs/heads/main/assets/browser.svg"
-          }
+            "type": "url",
+            "url": {
+                "light": "browser.svg",
+                "dark": "browser.svg"
+            }
         },
         "category": "Utilities",
         "price": "Free",
-        "developer": "Google LLC",
-        "sourceUrl": "https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer",
+        "developer": "Test Developer",
         "config": {
-          "mcpKey": "puppeteer",
-          "runtime": "npx",
-          "args": [
-            "-y",
-            "@modelcontextprotocol/server-puppeteer",
-            "--debug"
-          ]
-        },
-        "features": [
-          {
-            "name": "Navigate to any website",
-            "description": "Navigate to any URL in the browser",
-            "prompt": "Navigate to the URL google.com and..."
-          },
-          {
-            "name": "Interact with any website - search, click, scroll, screenshot, etc.",
-            "description": "Click elements on the page",
-            "prompt": "Go to google.com and search for..."
-          }
-        ],
-        "setup": []
+            "mcpKey": "puppeteer",
+            "runtime": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-puppeteer", "--debug"]
+        }
+    }, {
+        "name": "Time",
+        "description": "Time server",
+        "config": {
+            "mcpKey": "time",
+            "runtime": "npx",
+            "args": ["-y", "mcp-server-time"]
+        }
     }]);
 
-    // Set the stubbed registry in the cache
-    {
-        let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
-        *cache = Some(stubbed_registry);
-    }
+    let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
+    *cache = Some(test_registry);
+}
 
-    // Call get_app_configs and verify the result
-    let configs = app::get_app_configs().expect("Failed to get app configs");
+fn cleanup_test_registry() {
+    let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
+    *cache = None;
+}
 
-    // Verify we got exactly one app
-    assert_eq!(configs.len(), 1, "Expected exactly one app in the configs");
+#[test]
+#[serial]
+fn test_preload_dependencies() {
+    environment::set_test_mode(true);
+    let result = app::preload_dependencies();
+    assert!(result.is_ok());
+    environment::set_test_mode(false);
+}
 
-    // Verify the app is the Browser app
-    let (name, config) = &configs[0];
-    assert_eq!(name, "Browser", "Expected app name to be 'Browser'");
-    assert_eq!(
-        config.mcp_key, "puppeteer",
-        "Expected mcp_key to be 'puppeteer'"
-    );
+#[test]
+#[serial]
+fn test_install_and_uninstall() {
+    environment::set_test_mode(true);
+    setup_test_registry();
 
-    // Verify the command is npx or a path to npx
+    // Create a unique test configuration
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
+
+    // Set up initial config
+    let initial_config = json!({
+        "mcpServers": {}
+    });
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    )
+    .unwrap();
+    app::set_test_config_path(Some(config_path.clone()));
+
+    // Test installation
+    let install_result = app::install("Browser", None);
     assert!(
-        config.command.contains("npx"),
-        "Expected command to contain 'npx'"
+        install_result.is_ok(),
+        "Install failed: {:?}",
+        install_result
     );
 
-    // Verify the args
-    assert_eq!(config.args.len(), 3, "Expected 3 arguments");
-    assert_eq!(config.args[0], "-y", "Expected first arg to be '-y'");
+    // Verify installation
+    let is_installed = app::is_installed("Browser").unwrap();
+    assert!(is_installed, "Browser should be installed");
+
+    // Test uninstallation
+    let uninstall_result = app::uninstall("Browser");
+    assert!(
+        uninstall_result.is_ok(),
+        "Uninstall failed: {:?}",
+        uninstall_result
+    );
+
+    // Verify uninstallation
+    let is_installed = app::is_installed("Browser").unwrap();
+    assert!(!is_installed, "Browser should not be installed");
+
+    // Cleanup
+    app::set_test_config_path(None);
+    cleanup_test_registry();
+    environment::set_test_mode(false);
+}
+
+#[test]
+#[serial]
+fn test_app_env_operations() {
+    environment::set_test_mode(true);
+    setup_test_registry();
+
+    // Setup test config
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
+
+    let initial_config = json!({
+        "mcpServers": {}
+    });
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    )
+    .unwrap();
+    app::set_test_config_path(Some(config_path.clone()));
+
+    // Install app first
+    app::install("Browser", None).unwrap();
+
+    // Test saving env values
+    let env_values = json!({
+        "TEST_KEY": "test_value",
+        "ANOTHER_KEY": "another_value"
+    });
+    let save_result = app::save_app_env("Browser", env_values.clone());
+    assert!(
+        save_result.is_ok(),
+        "Failed to save env values: {:?}",
+        save_result
+    );
+
+    // Test getting env values
+    let get_result = app::get_app_env("Browser").unwrap();
     assert_eq!(
-        config.args[1], "@modelcontextprotocol/server-puppeteer",
-        "Expected second arg to be '@modelcontextprotocol/server-puppeteer'"
+        get_result, env_values,
+        "Retrieved env values don't match saved values"
     );
+
+    // Cleanup
+    app::set_test_config_path(None);
+    cleanup_test_registry();
+    environment::set_test_mode(false);
+}
+
+#[test]
+#[serial]
+fn test_app_statuses() {
+    environment::set_test_mode(true);
+    setup_test_registry();
+
+    // Setup test config
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
+
+    let initial_config = json!({
+        "mcpServers": {}
+    });
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    )
+    .unwrap();
+    app::set_test_config_path(Some(config_path.clone()));
+
+    // Get initial statuses
+    let initial_statuses = app::get_app_statuses().unwrap();
+    assert!(initial_statuses["installed"].is_object());
+    assert!(initial_statuses["configured"].is_object());
+
+    // Install an app
+    app::install("Browser", None).unwrap();
+    thread::sleep(Duration::from_millis(100));
+
+    // Check updated statuses
+    let updated_statuses = app::get_app_statuses().unwrap();
+    assert!(
+        updated_statuses["installed"]["Browser"].as_bool().unwrap(),
+        "Browser should be marked as installed"
+    );
+
+    // Cleanup
+    app::set_test_config_path(None);
+    cleanup_test_registry();
+    environment::set_test_mode(false);
+}
+
+#[test]
+#[serial]
+fn test_app_registry() {
+    environment::set_test_mode(true);
+    setup_test_registry();
+
+    // Test getting app registry
+    let registry_result = app::get_app_registry();
+    assert!(registry_result.is_ok(), "Failed to get app registry");
+
+    let registry = registry_result.unwrap();
+    assert!(registry.is_array(), "Registry should be an array");
+
+    let apps = registry.as_array().unwrap();
+    assert!(!apps.is_empty(), "Registry should not be empty");
+
+    // Verify Browser app exists with correct configuration
+    let browser_app = apps.iter().find(|app| app["name"] == "Browser");
+    assert!(
+        browser_app.is_some(),
+        "Browser app should exist in registry"
+    );
+
+    let browser_app = browser_app.unwrap();
     assert_eq!(
-        config.args[2], "--debug",
-        "Expected third arg to be '--debug'"
+        browser_app["config"]["mcpKey"].as_str().unwrap(),
+        "puppeteer",
+        "Browser app should have correct mcpKey"
     );
 
-    // Reset the cache for other tests
-    {
-        let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
-        *cache = None;
-    }
+    // Cleanup
+    cleanup_test_registry();
+    environment::set_test_mode(false);
+}
 
+#[test]
+#[serial]
+fn test_install_with_env_vars() {
+    environment::set_test_mode(true);
+    setup_test_registry();
+
+    // Setup test config
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
+
+    let initial_config = json!({
+        "mcpServers": {}
+    });
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    )
+    .unwrap();
+    app::set_test_config_path(Some(config_path.clone()));
+
+    // Test installation with env vars
+    let env_vars = json!({
+        "TEST_ENV": "test_value",
+        "DEBUG": "true"
+    });
+    let install_result = app::install("Browser", Some(env_vars.clone()));
+    assert!(
+        install_result.is_ok(),
+        "Install with env vars failed: {:?}",
+        install_result
+    );
+
+    // Verify env vars were saved
+    let saved_env = app::get_app_env("Browser").unwrap();
+    assert_eq!(
+        saved_env, env_vars,
+        "Saved env vars don't match provided values"
+    );
+
+    // Cleanup
+    app::set_test_config_path(None);
+    cleanup_test_registry();
+    environment::set_test_mode(false);
+}
+
+#[test]
+#[serial]
+fn test_multiple_apps() {
+    environment::set_test_mode(true);
+    setup_test_registry();
+
+    // Setup test config
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
+
+    let initial_config = json!({
+        "mcpServers": {}
+    });
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    )
+    .unwrap();
+    app::set_test_config_path(Some(config_path.clone()));
+
+    // Install multiple apps
+    app::install("Browser", None).unwrap();
+    app::install("Time", None).unwrap();
+
+    // Verify both are installed
+    assert!(
+        app::is_installed("Browser").unwrap(),
+        "Browser should be installed"
+    );
+    assert!(
+        app::is_installed("Time").unwrap(),
+        "Time should be installed"
+    );
+
+    // Check app statuses
+    let statuses = app::get_app_statuses().unwrap();
+    assert!(statuses["installed"]["Browser"].as_bool().unwrap());
+    assert!(statuses["installed"]["Time"].as_bool().unwrap());
+
+    // Uninstall one app
+    app::uninstall("Browser").unwrap();
+    assert!(
+        !app::is_installed("Browser").unwrap(),
+        "Browser should be uninstalled"
+    );
+    assert!(
+        app::is_installed("Time").unwrap(),
+        "Time should still be installed"
+    );
+
+    // Cleanup
+    app::set_test_config_path(None);
+    cleanup_test_registry();
     environment::set_test_mode(false);
 }
