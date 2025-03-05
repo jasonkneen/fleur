@@ -39,9 +39,24 @@ else
     echo "Rust is already installed."
 fi
 
-# Install cargo-tauri CLI
-echo "Installing cargo-tauri CLI..."
-cargo install tauri-cli
+# Download and install pre-built Tauri CLI binary
+echo "Setting up Tauri CLI..."
+ARCH=$(uname -m)
+if [ "$ARCH" = "arm64" ]; then
+    TAURI_BINARY_URL="https://github.com/tauri-apps/tauri/releases/download/tauri-cli-v2.3.1/cargo-tauri-aarch64-apple-darwin.zip"
+else
+    TAURI_BINARY_URL="https://github.com/tauri-apps/tauri/releases/download/tauri-cli-v2.3.1/cargo-tauri-x86_64-apple-darwin.zip"
+fi
+
+# Create cargo bin directory if it doesn't exist
+mkdir -p "$HOME/.cargo/bin"
+
+# Download and extract Tauri CLI binary
+echo "Downloading Tauri CLI binary..."
+curl -L "$TAURI_BINARY_URL" -o "$BUILD_DIR/cargo-tauri.tar.gz"
+tar xzf "$BUILD_DIR/cargo-tauri.tar.gz" -C "$BUILD_DIR"
+mv "$BUILD_DIR/cargo-tauri" "$HOME/.cargo/bin/"
+chmod +x "$HOME/.cargo/bin/cargo-tauri"
 
 # Download the source code (without git)
 echo "Downloading source code..."
