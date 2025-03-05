@@ -79,10 +79,11 @@ fn fetch_app_registry() -> Result<Value, String> {
 }
 
 pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
-    debug!("Getting app configurations");
+    debug!("Getting app configurations, test_mode: {}", crate::environment::is_test_mode());
 
     // In test mode, use test paths directly
     let (npx_shim, uvx_path) = if crate::environment::is_test_mode() {
+        debug!("Using test paths for npx_shim and uvx_path");
         (
             "/test/.local/share/fleur/bin/npx-fleur".to_string(),
             "/test/.local/bin/uvx".to_string(),

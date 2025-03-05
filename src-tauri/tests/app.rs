@@ -188,26 +188,16 @@ fn test_app_status() {
         }]));
     }
 
-    debug!(
-        "test_app_status: App registry set up, test_mode status: {}",
-        environment::is_test_mode()
-    );
+    debug!("test_app_status: App registry set up, test_mode status: {}", environment::is_test_mode());
 
     // Create a separate scope for the core test logic
     {
         // Test initial status
-        debug!(
-            "test_app_status: Getting app statuses, test_mode: {}",
-            environment::is_test_mode()
-        );
+        debug!("test_app_status: Getting app statuses, test_mode: {}", environment::is_test_mode());
         let result = match app::get_app_statuses() {
             Ok(r) => r,
             Err(e) => {
-                panic!(
-                    "get_app_statuses failed: {} (test_mode={})",
-                    e,
-                    environment::is_test_mode()
-                );
+                panic!("get_app_statuses failed: {} (test_mode={})", e, environment::is_test_mode());
             }
         };
 
@@ -215,17 +205,11 @@ fn test_app_status() {
         assert!(result["configured"].is_object());
 
         // Install and check status
-        debug!(
-            "test_app_status: Installing Browser app, test_mode: {}",
-            environment::is_test_mode()
-        );
+        debug!("test_app_status: Installing Browser app, test_mode: {}", environment::is_test_mode());
         app::install("Browser", None).unwrap();
         thread::sleep(Duration::from_millis(100));
 
-        debug!(
-            "test_app_status: Getting app statuses again, test_mode: {}",
-            environment::is_test_mode()
-        );
+        debug!("test_app_status: Getting app statuses again, test_mode: {}", environment::is_test_mode());
         let result = app::get_app_statuses().unwrap();
         assert!(result["installed"]["Browser"].as_bool().unwrap());
     }

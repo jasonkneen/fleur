@@ -175,11 +175,8 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
         .trim()
         .to_string();
 
-    // Skip this check in test mode or if the path looks reasonable
-    if !is_test_mode()
-        && !node_path.contains(".nvm/versions/node")
-        && !node_path.contains("/usr/local/bin/node")
-    {
+    // Only validate the node path if we're not in test mode
+    if !is_test_mode() && !node_path.contains(".nvm/versions/node") {
         debug!("Node path validation failed: {}", node_path);
         return Err("Node path is not from nvm installation".to_string());
     }
