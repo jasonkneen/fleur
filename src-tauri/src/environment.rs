@@ -127,7 +127,12 @@ pub fn get_uvx_path() -> Result<String, String> {
 }
 
 pub fn get_nvm_node_paths() -> Result<(String, String), String> {
+    // Add debug logging to help diagnose issues
+    debug!("get_nvm_node_paths called, test_mode: {}", is_test_mode());
+
+    // Always return test paths in test mode
     if is_test_mode() {
+        debug!("Using test mode paths for nvm/node");
         return Ok((
             "/test/.nvm/versions/node/v20.9.0/bin/node".to_string(),
             "/test/.nvm/versions/node/v20.9.0/bin/npx".to_string(),
@@ -136,12 +141,12 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
 
     let shell_command = format!(
         r#"
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-        nvm use {} > /dev/null 2>&1
-        which node
-        which npx
-    "#,
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+      nvm use {} > /dev/null 2>&1
+      which node
+      which npx
+  "#,
         NODE_VERSION
     );
 
@@ -170,7 +175,12 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
         .trim()
         .to_string();
 
-    if !node_path.contains(".nvm/versions/node") && !is_test_mode() {
+    // Skip this check in test mode or if the path looks reasonable
+    if !is_test_mode()
+        && !node_path.contains(".nvm/versions/node")
+        && !node_path.contains("/usr/local/bin/node")
+    {
+        debug!("Node path validation failed: {}", node_path);
         return Err("Node path is not from nvm installation".to_string());
     }
 

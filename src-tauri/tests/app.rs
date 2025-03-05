@@ -4,6 +4,7 @@ use fleur_lib::{
     app::{self, get_app_configs, set_test_config_path},
     environment,
 };
+use log::{debug, error, info, warn};
 use serde_json::Value;
 use serial_test::serial;
 use std::{thread, time::Duration};
@@ -149,7 +150,9 @@ fn test_uninstall() {
 #[test]
 #[serial]
 fn test_app_status() {
+    // Set test mode
     environment::set_test_mode(true);
+    debug!("test_app_status: Starting test with test_mode set to true");
 
     // Create a direct test with a unique ID
     let test_id = Uuid::new_v4().to_string();
@@ -185,25 +188,58 @@ fn test_app_status() {
         }]));
     }
 
-    // Test initial status
-    let result = app::get_app_statuses().unwrap();
-    assert!(result["installed"].is_object());
-    assert!(result["configured"].is_object());
+    debug!(
+        "test_app_status: App registry set up, test_mode status: {}",
+        environment::is_test_mode()
+    );
 
-    // Install and check status
-    app::install("Browser", None).unwrap();
-    thread::sleep(Duration::from_millis(100));
+    // Create a separate scope for the core test logic
+    {
+        // Test initial status
+        debug!(
+            "test_app_status: Getting app statuses, test_mode: {}",
+            environment::is_test_mode()
+        );
+        let result = match app::get_app_statuses() {
+            Ok(r) => r,
+            Err(e) => {
+                panic!(
+                    "get_app_statuses failed: {} (test_mode={})",
+                    e,
+                    environment::is_test_mode()
+                );
+            }
+        };
 
-    let result = app::get_app_statuses().unwrap();
-    assert!(result["installed"]["Browser"].as_bool().unwrap());
+        assert!(result["installed"].is_object());
+        assert!(result["configured"].is_object());
 
-    // Reset the test config path and cache
+        // Install and check status
+        debug!(
+            "test_app_status: Installing Browser app, test_mode: {}",
+            environment::is_test_mode()
+        );
+        app::install("Browser", None).unwrap();
+        thread::sleep(Duration::from_millis(100));
+
+        debug!(
+            "test_app_status: Getting app statuses again, test_mode: {}",
+            environment::is_test_mode()
+        );
+        let result = app::get_app_statuses().unwrap();
+        assert!(result["installed"]["Browser"].as_bool().unwrap());
+    }
+
+    // Clean up resources
+    debug!("test_app_status: Cleaning up resources");
     set_test_config_path(None);
     {
         let mut cache = app::APP_REGISTRY_CACHE.lock().unwrap();
         *cache = None;
     }
 
+    // Reset test mode at the end
+    debug!("test_app_status: Test completed, resetting test_mode");
     environment::set_test_mode(false);
 }
 
