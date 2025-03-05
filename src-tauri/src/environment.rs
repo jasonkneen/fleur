@@ -6,7 +6,9 @@ static UV_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NVM_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NODE_INSTALLED: AtomicBool = AtomicBool::new(false);
 static ENVIRONMENT_SETUP_STARTED: AtomicBool = AtomicBool::new(false);
+static NODE_VERSION: &str = "v20.9.0";
 static mut IS_TEST_MODE: bool = false;
+
 
 #[cfg(feature = "test-utils")]
 pub fn set_test_mode(enabled: bool) {
@@ -29,6 +31,10 @@ pub fn get_npx_shim_path() -> std::path::PathBuf {
 }
 
 pub fn get_uvx_path() -> Result<String, String> {
+    if is_test_mode() {
+        return Ok("/test/.local/bin/uvx".to_string());
+    }
+
     let output = Command::new("which")
         .arg("uvx")
         .output()
@@ -46,13 +52,13 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
         return Ok(("/test/node".to_string(), "/test/npx".to_string()));
     }
 
-    let shell_command = r#"
+    let shell_command = format!(r#"
         export NVM_DIR="$HOME/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-        nvm use v20.9.0 > /dev/null 2>&1
+        nvm use {} > /dev/null 2>&1
         which node
         which npx
-    "#;
+    "#, NODE_VERSION);
 
     let output = Command::new("bash")
         .arg("-c")
@@ -132,11 +138,11 @@ exec "$NPX" "$@"
 
 fn check_node_version() -> Result<String, String> {
     if is_test_mode() {
-        return Ok("v20.9.0".to_string());
+        return Ok(NODE_VERSION.to_string());
     }
 
     if NODE_INSTALLED.load(Ordering::Relaxed) {
-        return Ok("v20.9.0".to_string());
+        return Ok(NODE_VERSION.to_string());
     }
 
     let which_command = Command::new("which")
@@ -158,7 +164,7 @@ fn check_node_version() -> Result<String, String> {
             .trim()
             .to_string();
 
-        if version == "v20.9.0" {
+        if version == NODE_VERSION {
             NODE_INSTALLED.store(true, Ordering::Relaxed);
         }
 
@@ -169,7 +175,11 @@ fn check_node_version() -> Result<String, String> {
 }
 
 fn install_node() -> Result<(), String> {
-    info!("Installing Node.js v20.9.0...");
+    if is_test_mode() {
+        return Ok(());
+    }
+
+    info!("Installing Node.js {}", NODE_VERSION);
 
     let nvm_path_output = Command::new("which")
         .arg("nvm")
@@ -186,7 +196,7 @@ fn install_node() -> Result<(), String> {
 
     let output = Command::new(nvm_path)
         .arg("install")
-        .arg("v20.9.0")
+        .arg(NODE_VERSION)
         .output()
         .map_err(|e| format!("Failed to run node installation: {}", e))?;
 
@@ -198,7 +208,7 @@ fn install_node() -> Result<(), String> {
     }
 
     NODE_INSTALLED.store(true, Ordering::Relaxed);
-    info!("Node.js v20.9.0 installed successfully");
+    info!("Node.js {} installed successfully", NODE_VERSION);
     Ok(())
 }
 
@@ -296,6 +306,10 @@ fn check_uv_installed() -> bool {
 }
 
 fn install_uv() -> Result<(), String> {
+    if is_test_mode() {
+        return Ok(());
+    }
+
     info!("Installing uv...");
 
     let shell_command = r#"
@@ -321,13 +335,17 @@ fn install_uv() -> Result<(), String> {
 }
 
 fn ensure_node_environment() -> Result<String, String> {
+    if is_test_mode() {
+        return Ok("Node environment is ready".to_string());
+    }
+
     if !check_nvm_installed() {
         install_nvm()?;
     }
 
     match check_node_version() {
         Ok(version) => {
-            if version != "v20.9.0" {
+            if version != NODE_VERSION {
                 install_node()?;
             }
             ensure_npx_shim()?;
@@ -343,6 +361,10 @@ fn ensure_node_environment() -> Result<String, String> {
 
 #[tauri::command]
 pub fn ensure_environment() -> Result<String, String> {
+    if is_test_mode() {
+        return Ok("Environment setup started".to_string());
+    }
+
     if ENVIRONMENT_SETUP_STARTED.swap(true, Ordering::SeqCst) {
         return Ok("Environment setup already in progress".to_string());
     }
