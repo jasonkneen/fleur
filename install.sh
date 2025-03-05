@@ -3,6 +3,13 @@ set -e
 
 echo "Installing Fleur from source..."
 
+# Check if running on macOS
+if [[ "$(uname)" != "Darwin" ]]; then
+    echo "Error: Fleur is currently only compatible with macOS."
+    echo "This installation script does not support Linux or Windows yet."
+    exit 1
+fi
+
 # Check if curl is available (it should be on all macOS systems by default)
 if ! command -v curl &> /dev/null; then
     echo "Error: curl is not installed. It should be available on macOS by default."
