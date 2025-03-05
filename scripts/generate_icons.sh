@@ -16,7 +16,7 @@ show_help() {
     echo
     echo "The script will generate:"
     echo "  - macOS icons (.icns and various sizes)"
-    echo "  - Windows icons (.ico and various sizes for Windows Store)"
+    echo "  - Windows icons (.ico and various sizes for Windows Store, including 54x54 StoreLogo.png)"
     echo "  - PNG icons for Linux and general use"
     echo
     echo "All icons will be placed in the src-tauri/icons directory."
@@ -110,6 +110,7 @@ magick "$SOURCE_IMAGE" -resize 256x256 "$TAURI_ICONS_DIR/128x128@2x.png"
 echo "🏪 Generating Windows Store icons..."
 magick "$SOURCE_IMAGE" -resize 30x30 "$TAURI_ICONS_DIR/Square30x30Logo.png"
 magick "$SOURCE_IMAGE" -resize 44x44 "$TAURI_ICONS_DIR/Square44x44Logo.png"
+magick "$SOURCE_IMAGE" -resize 54x54 "$TAURI_ICONS_DIR/StoreLogo.png"
 magick "$SOURCE_IMAGE" -resize 71x71 "$TAURI_ICONS_DIR/Square71x71Logo.png"
 magick "$SOURCE_IMAGE" -resize 89x89 "$TAURI_ICONS_DIR/Square89x89Logo.png"
 magick "$SOURCE_IMAGE" -resize 107x107 "$TAURI_ICONS_DIR/Square107x107Logo.png"
