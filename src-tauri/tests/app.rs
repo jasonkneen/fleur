@@ -172,6 +172,19 @@ fn test_app_status() {
     // Set the test config path
     set_test_config_path(Some(config_path.clone()));
 
+    // Set up test app registry
+    {
+        let mut cache = app::APP_REGISTRY_CACHE.lock().unwrap();
+        *cache = Some(serde_json::json!([{
+            "name": "Browser",
+            "config": {
+                "mcpKey": "puppeteer",
+                "runtime": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-puppeteer", "--debug"]
+            }
+        }]));
+    }
+
     // Test initial status
     let result = app::get_app_statuses().unwrap();
     assert!(result["installed"].is_object());
@@ -184,8 +197,13 @@ fn test_app_status() {
     let result = app::get_app_statuses().unwrap();
     assert!(result["installed"]["Browser"].as_bool().unwrap());
 
-    // Reset the test config path
+    // Reset the test config path and cache
     set_test_config_path(None);
+    {
+        let mut cache = app::APP_REGISTRY_CACHE.lock().unwrap();
+        *cache = None;
+    }
+
     environment::set_test_mode(false);
 }
 
