@@ -1,4 +1,4 @@
-use log::info;
+use log::{info, error, debug};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -35,21 +35,88 @@ pub fn get_npx_shim_path() -> std::path::PathBuf {
         .join(".local/share/fleur/bin/npx-fleur")
 }
 
+/// Try to find uvx in common locations without installing
+fn find_existing_uvx() -> Option<String> {
+    if is_test_mode() {
+        return Some("/test/.local/bin/uvx".to_string());
+    }
+
+    // Common locations to check for uvx
+    let home_dir = match dirs::home_dir() {
+        Some(dir) => dir,
+        None => return None,
+    };
+
+    let possible_paths = [
+        home_dir.join(".local/bin/uvx"),
+        home_dir.join(".cargo/bin/uvx"),
+        std::path::PathBuf::from("/usr/local/bin/uvx"),
+        std::path::PathBuf::from("/opt/homebrew/bin/uvx"),
+        std::path::PathBuf::from("/usr/bin/uvx"),
+    ];
+
+    for path in &possible_paths {
+        if path.exists() {
+            info!("Found existing uvx at {}", path.display());
+            return Some(path.to_string_lossy().to_string());
+        }
+    }
+
+    // Try finding with which command
+    match Command::new("which")
+        .arg("uvx")
+        .output()
+    {
+        Ok(output) if output.status.success() => {
+            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            info!("Found existing uvx using 'which' at {}", path);
+            return Some(path);
+        }
+        _ => {}
+    }
+
+    None
+}
+
 pub fn get_uvx_path() -> Result<String, String> {
     if is_test_mode() {
         return Ok("/test/.local/bin/uvx".to_string());
     }
 
-    let output = Command::new("which")
-        .arg("uvx")
-        .output()
-        .map_err(|e| format!("Failed to get uvx path: {}", e))?;
-
-    if !output.status.success() {
-        return Err("uvx not found in PATH".to_string());
+    // First check if we already have uvx somewhere on the system
+    if let Some(path) = find_existing_uvx() {
+        info!("Using existing uvx at {}", path);
+        return Ok(path);
     }
 
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    info!("No existing uvx found, will need to install it");
+
+    // If uv is not installed, install it
+    if !check_uv_installed() {
+        info!("uv not found, attempting to install it");
+        install_uv()?;
+    }
+
+    // Check common locations again after installation
+    if let Some(path) = find_existing_uvx() {
+        return Ok(path);
+    }
+
+    // Final fallback - check if uv is installed without uvx
+    let uv_output = Command::new("which")
+        .arg("uv")
+        .output()
+        .map_err(|e| format!("Failed to get uv path: {}", e))?;
+
+    if uv_output.status.success() {
+        let uv_path = String::from_utf8_lossy(&uv_output.stdout).trim().to_string();
+        let uv_dir = std::path::Path::new(&uv_path).parent().ok_or("Failed to get parent directory of uv")?;
+
+        error!("uv installed at {} but uvx is not available. This is unexpected.", uv_path);
+        return Err("uvx not found after installing uv. Please install it manually or check your PATH.".to_string());
+    }
+
+    Err("uvx not found in PATH and installation failed. Please install it manually.".to_string())
 }
 
 pub fn get_nvm_node_paths() -> Result<(String, String), String> {
@@ -106,7 +173,7 @@ pub fn ensure_npx_shim() -> Result<String, String> {
 
     // Only create the shim if it doesn't exist
     if shim_path.exists() {
-        info!("NPX shim already exists at {}", shim_path.display());
+        debug!("NPX shim already exists at {}", shim_path.display());
         return Ok(shim_path.to_string_lossy().to_string());
     }
 
@@ -152,6 +219,7 @@ fn check_node_version() -> Result<String, String> {
 
     // If we already confirmed node is installed with correct version, return early
     if NODE_INSTALLED.load(Ordering::Relaxed) {
+        debug!("Node.js already confirmed as installed");
         return Ok(NODE_VERSION.to_string());
     }
 
@@ -265,6 +333,7 @@ fn check_nvm_installed() -> bool {
 
     // If we've already confirmed nvm is installed, return early
     if NVM_INSTALLED.load(Ordering::Relaxed) {
+        debug!("NVM already confirmed as installed");
         return true;
     }
 
@@ -334,10 +403,18 @@ fn check_uv_installed() -> bool {
 
     // If we've already confirmed uv is installed, return early
     if UV_INSTALLED.load(Ordering::Relaxed) {
+        debug!("uv already confirmed as installed");
         return true;
     }
 
-    // First check if uv is in PATH
+    // First check if uvx is already available - that implies uv is installed
+    if find_existing_uvx().is_some() {
+        info!("uvx found, assuming uv is already installed");
+        UV_INSTALLED.store(true, Ordering::Relaxed);
+        return true;
+    }
+
+    // Then check if uv is in PATH
     let which_command = Command::new("which")
         .arg("uv")
         .output()
@@ -397,8 +474,47 @@ fn install_uv() -> Result<(), String> {
         ));
     }
 
+    // The uv install script should install to ~/.cargo/bin
+    // Check if we need to source ~/.cargo/env to update the PATH
+    let source_cargo_env = r#"
+        source "$HOME/.cargo/env"
+    "#;
+
+    let _ = Command::new("bash")
+        .arg("-c")
+        .arg(source_cargo_env)
+        .output();
+
+    // Check if ~/.cargo/bin/uv exists and is executable
+    let home_dir = dirs::home_dir().ok_or("Failed to get home directory")?;
+    let uv_path = home_dir.join(".cargo/bin/uv");
+    let uvx_path = home_dir.join(".cargo/bin/uvx");
+
+    if uv_path.exists() {
+        info!("uv found at {}", uv_path.display());
+        if !uvx_path.exists() {
+            info!("uvx not found at {} after uv installation, this is unexpected", uvx_path.display());
+        } else {
+            info!("uvx found at {}", uvx_path.display());
+        }
+    } else {
+        // Check if uv was installed elsewhere
+        match Command::new("which")
+            .arg("uv")
+            .output()
+        {
+            Ok(output) if output.status.success() => {
+                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                info!("uv installed at {} (not in the expected location)", path);
+            }
+            _ => {
+              info!("uv not found in PATH after installation");
+            }
+        }
+    }
+
     UV_INSTALLED.store(true, Ordering::Relaxed);
-    info!("uv installed successfully");
+    info!("uv installation completed");
     Ok(())
 }
 
@@ -419,7 +535,7 @@ fn ensure_node_environment() -> Result<String, String> {
                 info!("Node.js {} found, but {} required. Installing...", version, NODE_VERSION);
                 install_node()?;
             } else {
-                info!("Node.js {} is already installed", NODE_VERSION);
+                debug!("Node.js {} is already installed", NODE_VERSION);
                 NODE_INSTALLED.store(true, Ordering::Relaxed);
             }
         }
@@ -443,6 +559,7 @@ pub fn ensure_environment() -> Result<String, String> {
 
     // Use a more reliable way to check if we're already setting up the environment
     if ENVIRONMENT_SETUP_STARTED.swap(true, Ordering::SeqCst) {
+        info!("Environment setup already in progress, skipping");
         return Ok("Environment setup already in progress".to_string());
     }
 
@@ -460,16 +577,20 @@ pub fn ensure_environment() -> Result<String, String> {
 
         info!("Starting environment setup");
 
-        // Check and install uv if needed
-        if !check_uv_installed() {
-            if let Err(e) = install_uv() {
-                info!("Failed to install uv: {}", e);
+        // Only check/install uv if we can't find uvx already
+        if find_existing_uvx().is_none() {
+            if !check_uv_installed() {
+                if let Err(e) = install_uv() {
+                    error!("Failed to install uv: {}", e);
+                }
             }
+        } else {
+            info!("uvx is already installed, skipping uv installation");
         }
 
         // Ensure node environment is ready
         if let Err(e) = ensure_node_environment() {
-            info!("Failed to ensure node environment: {}", e);
+            error!("Failed to ensure node environment: {}", e);
         }
 
         info!("Environment setup completed");

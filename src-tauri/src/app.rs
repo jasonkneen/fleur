@@ -2,13 +2,13 @@ use crate::environment::{ensure_npx_shim, get_uvx_path};
 use crate::file_utils::{ensure_config_file, ensure_mcp_servers};
 use dirs;
 use lazy_static::lazy_static;
-use log::{info, error};
+use log::{debug, error, info, warn};
+use reqwest::blocking::get;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
-use reqwest::blocking::get;
 use std::time::Duration;
 
 lazy_static! {
@@ -54,51 +54,91 @@ fn fetch_app_registry() -> Result<Value, String> {
     // Check if we have a cached registry
     let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
     if let Some(ref registry) = *cache {
+        debug!("Using cached app registry");
         return Ok(registry.clone());
     }
 
     // Fetch the registry from GitHub
-    let registry_url = "https://raw.githubusercontent.com/fleuristes/app-registry/refs/heads/main/apps.json";
-    let response = get(registry_url)
-        .map_err(|e| format!("Failed to fetch app registry: {}", e))?;
-    
-    let registry_json: Value = response
-        .json()
-        .map_err(|e| format!("Failed to parse app registry JSON: {}", e))?;
-    
+    let registry_url =
+        "https://raw.githubusercontent.com/fleuristes/app-registry/refs/heads/main/apps.json";
+    info!("Fetching app registry from {}", registry_url);
+    let response = get(registry_url).map_err(|e| {
+        error!("Failed to fetch app registry: {}", e);
+        format!("Failed to fetch app registry: {}", e)
+    })?;
+
+    let registry_json: Value = response.json().map_err(|e| {
+        error!("Failed to parse app registry JSON: {}", e);
+        format!("Failed to parse app registry JSON: {}", e)
+    })?;
+
     // Cache the registry
     *cache = Some(registry_json.clone());
+    info!("Successfully fetched and cached app registry");
     Ok(registry_json)
 }
 
 pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
-    let npx_shim = ensure_npx_shim().unwrap_or_else(|_| "npx".to_string());
-    let uvx_path = get_uvx_path().unwrap_or_else(|_| "uvx".to_string());
-    
+    debug!("Getting app configurations");
+
+    // Get absolute paths, and fail if they can't be obtained
+    let npx_shim = match ensure_npx_shim() {
+        Ok(path) => path,
+        Err(e) => {
+            error!("Failed to get npx shim: {}", e);
+            return Err(format!("Failed to get npx shim: {}", e));
+        }
+    };
+
+    let uvx_path = match get_uvx_path() {
+        Ok(path) => path,
+        Err(e) => {
+            error!("Failed to get uvx path: {}", e);
+            return Err(format!("Failed to get uvx path: {}", e));
+        }
+    };
+
+    info!("Using npx_shim: {}", npx_shim);
+    info!("Using uvx_path: {}", uvx_path);
+
     let registry = fetch_app_registry()?;
-    let apps = registry.as_array().ok_or("App registry is not an array")?;
-    
+    let apps = registry.as_array().ok_or_else(|| {
+        let err = "App registry is not an array".to_string();
+        error!("{}", err);
+        err
+    })?;
+
     let mut configs = Vec::new();
-    
+
     for app in apps {
-        let name = app["name"].as_str().ok_or("App name is missing")?.to_string();
+        let name = app["name"]
+            .as_str()
+            .ok_or("App name is missing")?
+            .to_string();
         let config = app["config"].as_object().ok_or("App config is missing")?;
-        
-        let mcp_key = config["mcpKey"].as_str().ok_or("mcpKey is missing")?.to_string();
+
+        let mcp_key = config["mcpKey"]
+            .as_str()
+            .ok_or("mcpKey is missing")?
+            .to_string();
         let runtime = config["runtime"].as_str().ok_or("runtime is missing")?;
-        
+
         let command = match runtime {
             "npx" => npx_shim.clone(),
             "uvx" => uvx_path.clone(),
             _ => runtime.to_string(),
         };
-        
+
         let args_value = config["args"].as_array().ok_or("args is missing")?;
         let args: Vec<String> = args_value
             .iter()
             .map(|arg| arg.as_str().unwrap_or("").to_string())
             .collect();
-        
+
+        debug!(
+            "Configured app '{}' with command: '{}', args: {:?}",
+            name, command, args
+        );
         configs.push((
             name,
             AppConfig {
@@ -108,52 +148,68 @@ pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
             },
         ));
     }
-    
+
+    info!("Successfully configured {} apps", configs.len());
     Ok(configs)
 }
 
 pub fn get_config() -> Result<Value, String> {
     let mut cache = CONFIG_CACHE.lock().unwrap();
     if let Some(ref config) = *cache {
+        debug!("Using cached config");
         return Ok(config.clone());
     }
 
     let config_path = get_config_path()?;
+    debug!("Using config path: {}", config_path.display());
 
     if !config_path.exists() {
+        info!("Config file does not exist, creating it");
         ensure_config_file(&config_path)?;
     }
 
-    let config_str = fs::read_to_string(&config_path)
-        .map_err(|e| format!("Failed to read config file: {}", e))?;
+    let config_str = fs::read_to_string(&config_path).map_err(|e| {
+        error!("Failed to read config file: {}", e);
+        format!("Failed to read config file: {}", e)
+    })?;
 
-    let mut config_json: Value = serde_json::from_str(&config_str)
-        .map_err(|e| format!("Failed to parse config JSON: {}", e))?;
+    let mut config_json: Value = serde_json::from_str(&config_str).map_err(|e| {
+        error!("Failed to parse config JSON: {}", e);
+        format!("Failed to parse config JSON: {}", e)
+    })?;
 
     ensure_mcp_servers(&mut config_json)?;
 
     *cache = Some(config_json.clone());
+    debug!("Config loaded and cached successfully");
     Ok(config_json)
 }
 
 pub fn save_config(config: &Value) -> Result<(), String> {
     let config_path = get_config_path()?;
+    debug!("Saving config to {}", config_path.display());
 
-    let updated_config = serde_json::to_string_pretty(config)
-        .map_err(|e| format!("Failed to serialize config: {}", e))?;
+    let updated_config = serde_json::to_string_pretty(config).map_err(|e| {
+        error!("Failed to serialize config: {}", e);
+        format!("Failed to serialize config: {}", e)
+    })?;
 
-    fs::write(&config_path, updated_config)
-        .map_err(|e| format!("Failed to write config file: {}", e))?;
+    fs::write(&config_path, updated_config).map_err(|e| {
+        error!("Failed to write config file: {}", e);
+        format!("Failed to write config file: {}", e)
+    })?;
 
     // Update cache
     let mut cache = CONFIG_CACHE.lock().unwrap();
     *cache = Some(config.clone());
+    info!("Config saved successfully");
 
     Ok(())
 }
 
 #[tauri::command]
 pub fn preload_dependencies() -> Result<(), String> {
+    info!("Preloading dependencies");
     std::thread::spawn(|| {
         let _ = Command::new("npm")
             .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
@@ -177,6 +233,18 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
         let command = config.command.clone();
         let args = config.args.clone();
 
+        // Validate the command exists and is executable
+        if !std::path::Path::new(&command).exists() {
+            error!(
+                "Command path '{}' for app '{}' does not exist",
+                command, app_name
+            );
+            return Err(format!(
+                "Command path '{}' for app '{}' does not exist",
+                command, app_name
+            ));
+        }
+
         if let Some(mcp_servers) = config_json
             .get_mut("mcpServers")
             .and_then(|v| v.as_object_mut())
@@ -197,15 +265,20 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
             std::thread::spawn(move || {
                 if command.contains("npx") && args.len() > 1 {
                     let package = &args[1];
+                    info!("Pre-caching npm package: {}", package);
                     let _ = Command::new("npm").args(["cache", "add", package]).output();
                 }
             });
 
+            info!("Successfully installed app: {}", app_name);
             Ok(format!("Added {} configuration for {}", mcp_key, app_name))
         } else {
-            Err("Failed to find mcpServers in config".to_string())
+            let err = "Failed to find mcpServers in config".to_string();
+            error!("{}", err);
+            Err(err)
         }
     } else {
+        warn!("No configuration available for: {}", app_name);
         Ok(format!("No configuration available for {}", app_name))
     }
 }
@@ -223,23 +296,29 @@ pub fn uninstall(app_name: &str) -> Result<String, String> {
         {
             if mcp_servers.remove(&config.mcp_key).is_some() {
                 save_config(&config_json)?;
+                info!("Successfully uninstalled app: {}", app_name);
                 Ok(format!(
                     "Removed {} configuration for {}",
                     config.mcp_key, app_name
                 ))
             } else {
+                warn!("Configuration for {} was not found", app_name);
                 Ok(format!("Configuration for {} was not found", app_name))
             }
         } else {
-            Err("Failed to find mcpServers in config".to_string())
+            let err = "Failed to find mcpServers in config".to_string();
+            error!("{}", err);
+            Err(err)
         }
     } else {
+        warn!("No configuration available for: {}", app_name);
         Ok(format!("No configuration available for {}", app_name))
     }
 }
 
 #[tauri::command]
 pub fn is_installed(app_name: &str) -> Result<bool, String> {
+    debug!("Checking if app is installed: {}", app_name);
     if let Some((_, config)) = get_app_configs()?.iter().find(|(name, _)| name == app_name) {
         let config_json = get_config()?;
 
@@ -257,15 +336,21 @@ pub fn is_installed(app_name: &str) -> Result<bool, String> {
 
 #[tauri::command]
 pub fn save_app_env(app_name: &str, env_values: serde_json::Value) -> Result<String, String> {
-    println!("Saving ENV values for app: {}", app_name);
+    info!("Saving ENV values for app: {}", app_name);
 
     let configs = get_app_configs()?;
     if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
         let mut config_json = get_config()?;
         let mcp_key = config.mcp_key.clone();
 
-        if let Some(mcp_servers) = config_json.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
-            if let Some(server_config) = mcp_servers.get_mut(&mcp_key).and_then(|v| v.as_object_mut()) {
+        if let Some(mcp_servers) = config_json
+            .get_mut("mcpServers")
+            .and_then(|v| v.as_object_mut())
+        {
+            if let Some(server_config) = mcp_servers
+                .get_mut(&mcp_key)
+                .and_then(|v| v.as_object_mut())
+            {
                 // Create ENV object if it doesn't exist
                 if !server_config.contains_key("env") {
                     server_config.insert("env".to_string(), json!({}));
@@ -277,8 +362,9 @@ pub fn save_app_env(app_name: &str, env_values: serde_json::Value) -> Result<Str
                         for (key, value) in values {
                             env.insert(key.clone(), value.clone());
                         }
-                        
+
                         save_config(&config_json)?;
+                        info!("Successfully saved ENV values for app: {}", app_name);
                         return Ok(format!("Saved ENV values for app '{}'", app_name));
                     }
                     return Err("Invalid env_values format".to_string());
@@ -295,7 +381,7 @@ pub fn save_app_env(app_name: &str, env_values: serde_json::Value) -> Result<Str
 
 #[tauri::command]
 pub fn get_app_env(app_name: &str) -> Result<Value, String> {
-    println!("Getting ENV values for app: {}", app_name);
+    debug!("Getting ENV values for app: {}", app_name);
 
     let configs = get_app_configs()?;
     if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
@@ -320,12 +406,23 @@ pub fn get_app_env(app_name: &str) -> Result<Value, String> {
 
 #[tauri::command]
 pub fn get_app_statuses() -> Result<Value, String> {
+    debug!("Getting app statuses");
     let config_json = get_config()?;
 
     let mut installed_apps = json!({});
     let mut configured_apps = json!({});
 
-    let app_configs = get_app_configs()?;
+    let app_configs = match get_app_configs() {
+        Ok(configs) => configs,
+        Err(e) => {
+            // Log the error but return an empty status rather than failing
+            error!("Failed to get app configs: {}. Returning empty status.", e);
+            return Ok(json!({
+                "installed": {},
+                "configured": {}
+            }));
+        }
+    };
 
     if let Some(mcp_servers) = config_json.get("mcpServers").and_then(|v| v.as_object()) {
         for (app_name, config) in app_configs {
@@ -334,6 +431,7 @@ pub fn get_app_statuses() -> Result<Value, String> {
         }
     }
 
+    info!("Successfully retrieved app statuses");
     Ok(json!({
         "installed": installed_apps,
         "configured": configured_apps
