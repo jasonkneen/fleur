@@ -107,7 +107,7 @@ pub fn get_uvx_path() -> Result<String, String> {
         let uv_path = String::from_utf8_lossy(&uv_output.stdout)
             .trim()
             .to_string();
-        let uv_dir = std::path::Path::new(&uv_path)
+        let _uv_dir = std::path::Path::new(&uv_path)
             .parent()
             .ok_or("Failed to get parent directory of uv")?;
 

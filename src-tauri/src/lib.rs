@@ -2,12 +2,9 @@ pub mod app;
 pub mod environment;
 pub mod file_utils;
 
-use core::panic::PanicInfo;
 use log::{error, info};
-use simplelog::{Config, ConfigBuilder, LevelFilter, WriteLogger};
+use simplelog::{ConfigBuilder, LevelFilter, WriteLogger};
 use std::fs;
-use std::path::PathBuf;
-use tauri::Manager as _;
 use tauri_plugin_updater::{Builder as UpdaterBuilder, UpdaterExt};
 use time::macros::format_description;
 
