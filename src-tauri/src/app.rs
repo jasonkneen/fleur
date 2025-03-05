@@ -81,21 +81,31 @@ fn fetch_app_registry() -> Result<Value, String> {
 pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
     debug!("Getting app configurations");
 
-    // Get absolute paths, and fail if they can't be obtained
-    let npx_shim = match ensure_npx_shim() {
-        Ok(path) => path,
-        Err(e) => {
-            error!("Failed to get npx shim: {}", e);
-            return Err(format!("Failed to get npx shim: {}", e));
-        }
-    };
+    // In test mode, use test paths directly
+    let (npx_shim, uvx_path) = if crate::environment::is_test_mode() {
+        (
+            "/test/.local/share/fleur/bin/npx-fleur".to_string(),
+            "/test/.local/bin/uvx".to_string(),
+        )
+    } else {
+        // Get absolute paths, and fail if they can't be obtained
+        let npx_shim = match ensure_npx_shim() {
+            Ok(path) => path,
+            Err(e) => {
+                error!("Failed to get npx shim: {}", e);
+                return Err(format!("Failed to get npx shim: {}", e));
+            }
+        };
 
-    let uvx_path = match get_uvx_path() {
-        Ok(path) => path,
-        Err(e) => {
-            error!("Failed to get uvx path: {}", e);
-            return Err(format!("Failed to get uvx path: {}", e));
-        }
+        let uvx_path = match get_uvx_path() {
+            Ok(path) => path,
+            Err(e) => {
+                error!("Failed to get uvx path: {}", e);
+                return Err(format!("Failed to get uvx path: {}", e));
+            }
+        };
+
+        (npx_shim, uvx_path)
     };
 
     info!("Using npx_shim: {}", npx_shim);
