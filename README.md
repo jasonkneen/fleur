@@ -1,4 +1,14 @@
-# Fleur - App Marketplace for Claude Desktop
+<div align="center">
+  <h1>Fleur</h1>
+  <p>A desktop app marketplace for Claude Desktop</p>
+</div>
+
+<div align="center">
+  
+[![License](https://img.shields.io/npm/l/fleuristes/fleur.svg?style=flat)](https://github.com/fleuristes/fleur/blob/main/LICENSE)
+  
+</div>
+
 
 ![Fleur Logo](public/hero-asset.png)
 
