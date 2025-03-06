@@ -42,7 +42,7 @@ TAURI_SIGNING_PRIVATE_KEY=~/.tauri/fleur.key cargo tauri build --target universa
 
 # Generate latest.json
 echo "Generating latest.json..."
-SIGNATURE=$(cat target/release/bundle/macos/Fleur.app.tar.gz.sig)
+SIGNATURE=$(cat target/universal-apple-darwin/release/bundle/macos/Fleur.app.tar.gz.sig)
 cat > latest.json << EOL
 {
     "version": "${VERSION#v}",
@@ -61,5 +61,5 @@ EOL
 echo "Generated artifacts:"
 echo "-------------------"
 echo "Latest update info: $(ls latest.json)"
-echo "DMG installer: $(ls target/release/bundle/dmg/*.dmg)"
-echo "App archive: $(ls target/release/bundle/macos/*.app.tar.gz)"
+echo "DMG installer: $(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg)"
+echo "App archive: $(ls target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz)"
