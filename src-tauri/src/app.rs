@@ -247,17 +247,28 @@ pub fn save_config(config: &Value) -> Result<(), String> {
     Ok(())
 }
 
-fn restart_claude_app() -> Result<(), Box<dyn std::error::Error>> {
+#[tauri::command]
+pub fn restart_claude_app() -> Result<String, String> {
+    info!("Restarting Claude app...");
+
     // Kill the Claude app
-    Command::new("pkill").arg("-x").arg("Claude").output()?;
+    Command::new("pkill")
+        .arg("-x")
+        .arg("Claude")
+        .output()
+        .map_err(|e| format!("Failed to kill Claude app: {}", e))?;
 
     // Wait a moment to ensure it's fully closed
     sleep(Duration::from_millis(500));
 
     // Relaunch the app
-    Command::new("open").arg("-a").arg("Claude").output()?;
+    Command::new("open")
+        .arg("-a")
+        .arg("Claude")
+        .output()
+        .map_err(|e| format!("Failed to relaunch Claude app: {}", e))?;
 
-    Ok(())
+    Ok("Claude app restarted successfully".to_string())
 }
 
 #[tauri::command]
@@ -345,15 +356,6 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
 
             info!("Successfully installed app: {}", app_name);
 
-            // Restart Claude app after installation
-            if !crate::environment::is_test_mode() {
-                if let Err(e) = restart_claude_app() {
-                    warn!("Failed to restart Claude app: {}", e);
-                } else {
-                    info!("Claude app restarted successfully after installation");
-                }
-            }
-
             Ok(format!("Added {} configuration for {}", mcp_key, app_name))
         } else {
             let err = "Failed to find mcpServers in config".to_string();
@@ -381,15 +383,6 @@ pub fn uninstall(app_name: &str) -> Result<String, String> {
             if mcp_servers.remove(&config.mcp_key).is_some() {
                 save_config(&config_json)?;
                 info!("Successfully uninstalled app: {}", app_name);
-
-                // Restart Claude app after uninstallation
-                if !crate::environment::is_test_mode() {
-                    if let Err(e) = restart_claude_app() {
-                        warn!("Failed to restart Claude app: {}", e);
-                    } else {
-                        info!("Claude app restarted successfully after uninstallation");
-                    }
-                }
 
                 Ok(format!(
                     "Removed {} configuration for {}",
