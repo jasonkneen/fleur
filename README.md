@@ -6,6 +6,14 @@ Fleur is a desktop application that serves as an app marketplace for Claude Desk
 
 All without having to use a command line. Fleur is made for non-technical users in mind, but is extendable to be used by developers.
 
+## Getting Started
+
+To install Fleur open the terminal and run the following command:
+
+```bash
+curl -fsSL https://fleur.sh/ | sh
+```
+
 ## Features
 
 - **App Discovery**: Browse and search for apps in the Fleur marketplace
@@ -14,13 +22,6 @@ All without having to use a command line. Fleur is made for non-technical users 
 - **App Management**: View installed apps and their status
 - **Automatic Updates**: Stay up-to-date with the latest app versions
 
-## Getting Started
-
-To install Fleur open the terminal and run the following command:
-
-```bash
-curl -fsSL https://fleur.sh/ | sh
-```
 
 ## Submitting your MCP as an App
 
@@ -98,10 +99,14 @@ cd src-tauri
 cargo test
 ```
 
+## Contributing
+
+All contributions are welcome!
+
+- `fleur`: The main repository containing the Fleur app. It's built with Tauri, React and Typescript. In the `src-tauri` folder, you'll find the Rust code. And in the `src` folder, you'll find the React code for the UI.
+
+- [`app-registry`](https://github.com/fleuristes/app-registry): is the repository that contains the list of all MCPs
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## Learn More
-
-Visit [fleurmcp.com](https://www.fleurmcp.com/) for more information about Fleur and its ecosystem.
