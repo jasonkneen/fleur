@@ -12,13 +12,16 @@
   "app": {
     "windows": [
       {
-        "title": "Fleur",
+        "title": "",
         "width": 800,
         "height": 600,
         "fullscreen": false,
         "center": true,
         "decorations": true,
-        "resizable": false
+        "resizable": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "theme": "Light"
       }
     ],
     "security": {
