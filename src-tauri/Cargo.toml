@@ -1,6 +1,6 @@
 [package]
 name = "fleur"
-version = "0.1.5"
+version = "0.1.6"
 description = "A GUI to manage your MCPs"
 authors = ["you"]
 edition = "2021"
