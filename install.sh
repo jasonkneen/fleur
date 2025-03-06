@@ -104,7 +104,6 @@ verify_download() {
         print_error "Download failed: $1 not found."
         exit 1
     fi
-
     # Check file size to ensure it's not empty
     file_size=$(stat -f%z "$1")
     if [[ $file_size -lt 1000 ]]; then
@@ -132,67 +131,53 @@ spinner() {
 main() {
     # Display banner
     display_banner
-
     print_message "Welcome to the Fleur installer v$VERSION!"
-
     # Trap for cleanup
     trap cleanup EXIT INT TERM
-
     # System compatibility check
     if [[ "$(uname)" != "Darwin" ]]; then
         print_error "Fleur is currently only compatible with macOS."
         print_error "This installation script does not support Linux or Windows yet."
         exit 1
     fi
-
     # Check for existing installation
     check_existing_installation
-
     # Create a directory for downloads
     BUILD_DIR="$HOME/.fleur-build-$(date +%s)"
     mkdir -p "$BUILD_DIR"
     print_message "Using build directory: ${YELLOW}$BUILD_DIR${RESET}"
-
     # Download pre-built application
     APP_URL="https://github.com/fleuristes/fleur/releases/download/v$VERSION/Fleur.app.tar.gz"
     print_message "Downloading Fleur from: ${YELLOW}$APP_URL${RESET}"
     echo -e "${YELLOW}${BOLD}Downloading...${RESET}"
     download_with_progress "$APP_URL" "$BUILD_DIR/Fleur.app.tar.gz"
     verify_download "$BUILD_DIR/Fleur.app.tar.gz"
-
     # Extract the application
     print_message "Extracting files..."
     tar -xzf "$BUILD_DIR/Fleur.app.tar.gz" -C "$BUILD_DIR" &
     extraction_pid=$!
     spinner $extraction_pid
     wait $extraction_pid
-
     # Verify extraction
     if [[ ! -d "$BUILD_DIR/Fleur.app" ]]; then
         print_error "Extraction failed. Fleur.app not found in the build directory."
         exit 1
     fi
-
     # Remove quarantine attribute
     xattr -rd com.apple.quarantine "$BUILD_DIR/Fleur.app" 2>/dev/null || true
-
     # Copy to Applications
     print_message "Installing Fleur..."
     cp -R "$BUILD_DIR/Fleur.app" /Applications/
-
     # Set permissions
     chmod -R 755 "/Applications/Fleur.app"
     chown -R $(whoami) "/Applications/Fleur.app"
-
     # Create application icon cache
     touch "/Applications/Fleur.app"
     killall Finder &>/dev/null || true
-
     # Display completion message with animation
-    echo -e "\n${GREEN}${BOLD}"
+    echo -e "${GREEN}${BOLD}"
     echo "Installation complete! ✨🍰✨"
     echo -e "${RESET}"
-
     open "/Applications/Fleur.app"
 }
 
