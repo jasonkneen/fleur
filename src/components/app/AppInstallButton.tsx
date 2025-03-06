@@ -66,9 +66,26 @@ export function AppInstallButton({
         appName: app.name,
       });
       onInstallationChange(newIsInstalled);
+
       toast.success(
-        `${app.name} ${!newIsInstalled ? "uninstalled" : "installed"}`
+        `${app.name} ${!newIsInstalled ? "uninstalled" : "installed"}`,
+        {
+          action: {
+            label: "Relaunch Claude",
+            onClick: async () => {
+              try {
+                await invoke("restart_claude_app");
+                toast.success("Claude app is restarting...");
+              } catch (error) {
+                console.error("Failed to restart Claude app:", error);
+                toast.error("Failed to restart Claude app");
+              }
+            },
+          },
+          duration: 10000,
+        }
       );
+
       if (app.setup && app.setup.length > 0 && newIsInstalled) {
         navigate({ to: "/app/$name", params: { name: app.name } });
         return;

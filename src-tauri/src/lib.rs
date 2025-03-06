@@ -71,7 +71,7 @@ fn log_from_frontend(level: String, message: String) {
 #[tauri::command]
 fn open_system_url(url: String) -> Result<(), String> {
     info!("Opening URL with system command: {}", url);
-    
+
     #[cfg(target_os = "macos")]
     {
         use std::process::Command;
@@ -80,7 +80,7 @@ fn open_system_url(url: String) -> Result<(), String> {
             .output()
             .map_err(|e| format!("Failed to open URL: {}", e))?;
     }
-    
+
     #[cfg(target_os = "windows")]
     {
         use std::process::Command;
@@ -89,7 +89,7 @@ fn open_system_url(url: String) -> Result<(), String> {
             .output()
             .map_err(|e| format!("Failed to open URL: {}", e))?;
     }
-    
+
     #[cfg(target_os = "linux")]
     {
         use std::process::Command;
@@ -98,7 +98,7 @@ fn open_system_url(url: String) -> Result<(), String> {
             .output()
             .map_err(|e| format!("Failed to open URL: {}", e))?;
     }
-    
+
     Ok(())
 }
 
@@ -126,6 +126,7 @@ pub fn run() {
             app::save_app_env,
             app::get_app_env,
             app::get_app_registry,
+            app::restart_claude_app,
             environment::ensure_environment,
             log_from_frontend,
             open_system_url,
