@@ -12,7 +12,7 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 # Version to download
-VERSION="0.1.2"
+VERSION="0.1.3"
 
 # Function to print messages with different styling
 print_message() {
