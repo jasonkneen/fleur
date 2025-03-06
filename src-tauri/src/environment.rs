@@ -8,6 +8,7 @@ static UV_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NVM_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NODE_INSTALLED: AtomicBool = AtomicBool::new(false);
 static ENVIRONMENT_SETUP_STARTED: AtomicBool = AtomicBool::new(false);
+static ENVIRONMENT_SETUP_COMPLETED: AtomicBool = AtomicBool::new(false);
 static NODE_VERSION: &str = "v20.9.0";
 static IS_TEST_MODE: AtomicBool = AtomicBool::new(false);
 
@@ -572,7 +573,55 @@ fn ensure_node_environment() -> Result<String, String> {
     // Ensure npx shim exists
     ensure_npx_shim()?;
 
+    // Mark environment setup as completed
+    ENVIRONMENT_SETUP_COMPLETED.store(true, Ordering::SeqCst);
+
     Ok("Node environment is ready".to_string())
+}
+
+// New synchronous environment setup function for config.rs to use
+pub fn ensure_environment_sync() -> Result<String, String> {
+    if is_test_mode() {
+        return Ok("Environment setup completed".to_string());
+    }
+
+    // If environment setup is already completed, return early
+    if ENVIRONMENT_SETUP_COMPLETED.load(Ordering::SeqCst) {
+        debug!("Environment setup already completed");
+        return Ok("Environment setup already completed".to_string());
+    }
+
+    info!("Starting synchronous environment setup");
+
+    // Use a mutex to prevent concurrent setup operations
+    let _lock = match ENVIRONMENT_SETUP_LOCK.try_lock() {
+        Ok(guard) => guard,
+        Err(_) => {
+            info!("Another environment setup is already in progress, waiting...");
+            // Block until lock is available for synchronous operation
+            ENVIRONMENT_SETUP_LOCK.lock().unwrap()
+        }
+    };
+
+    // Check again if setup was completed while waiting
+    if ENVIRONMENT_SETUP_COMPLETED.load(Ordering::SeqCst) {
+        return Ok("Environment setup completed while waiting".to_string());
+    }
+
+    // Only check/install uv if we can't find uvx already
+    if find_existing_uvx().is_none() {
+        if !check_uv_installed() {
+            install_uv()?;
+        }
+    } else {
+        info!("uvx is already installed, skipping uv installation");
+    }
+
+    // Ensure node environment is ready
+    ensure_node_environment()?;
+
+    info!("Synchronous environment setup completed");
+    Ok("Environment setup completed".to_string())
 }
 
 #[tauri::command]
