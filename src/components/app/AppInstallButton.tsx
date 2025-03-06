@@ -1,12 +1,12 @@
-import { toast } from 'sonner';
-import { useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { useNavigate } from '@tanstack/react-router';
-import { AppInstallButtonProps } from '@/types/components/app';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { ConfigurationMenu } from './configuration';
-import { Dialog, DialogContent, DialogTrigger } from '../ui/dialog';
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { useNavigate } from "@tanstack/react-router";
+import { AppInstallButtonProps } from "@/types/components/app";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ConfigurationMenu } from "./configuration";
+import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
 
 export function AppInstallButton({
   app,
@@ -150,4 +150,4 @@ export function AppInstallButton({
       )}
     </div>
   );
-} 
+}
