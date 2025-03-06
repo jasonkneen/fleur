@@ -236,22 +236,35 @@ fn check_node_version() -> Result<String, String> {
     }
 
     // If we already confirmed node is installed with correct version, return early
-    if NODE_INSTALLED.load(Ordering::Relaxed) {
+    if NODE_INSTALLED.load(Ordering::SeqCst) {
         debug!("Node.js already confirmed as installed");
         return Ok(NODE_VERSION.to_string());
     }
 
-    // Check if node exists in PATH
-    let which_command = Command::new("which")
-        .arg("node")
-        .output()
-        .map_err(|e| format!("Failed to check node existence: {}", e))?;
+    // Check NVM-installed node first
+    let shell_command = format!(
+        r#"
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm list | grep -w "{}" || true
+    "#,
+        NODE_VERSION
+    );
 
-    if !which_command.status.success() {
-        return Err("Node not found in PATH".to_string());
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg(shell_command)
+        .output()
+        .map_err(|e| format!("Failed to check nvm node version: {}", e))?;
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    if output_str.contains(NODE_VERSION) {
+        info!("Node.js {} is already installed via nvm", NODE_VERSION);
+        NODE_INSTALLED.store(true, Ordering::SeqCst);
+        return Ok(NODE_VERSION.to_string());
     }
 
-    // Get node version
+    // If not found in NVM, check system node
     let version_command = Command::new("node")
         .arg("--version")
         .output()
@@ -262,16 +275,20 @@ fn check_node_version() -> Result<String, String> {
             .trim()
             .to_string();
 
-        // Only store as installed if it's the correct version
         if version == NODE_VERSION {
-            info!("Node.js {} is already installed", NODE_VERSION);
-            NODE_INSTALLED.store(true, Ordering::Relaxed);
+            info!("Node.js {} is already installed system-wide", NODE_VERSION);
+            NODE_INSTALLED.store(true, Ordering::SeqCst);
+            return Ok(version);
         }
 
-        Ok(version)
-    } else {
-        Err("Failed to get Node version".to_string())
+        info!(
+            "Found Node.js {} but {} is required",
+            version, NODE_VERSION
+        );
+        return Ok(version);
     }
+
+    Err("Node.js not found".to_string())
 }
 
 fn check_nvm_version() -> Result<String, String> {
