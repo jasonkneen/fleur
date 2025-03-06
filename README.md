@@ -1,6 +1,6 @@
 # Fleur - App Marketplace for Claude Desktop
 
-![Fleur Logo](public/fleur-logo.png)
+![Fleur Logo](public/hero-asset.png)
 
 Fleur is a desktop application that serves as an app marketplace for Claude Desktop. It allows users to discover, install, and manage apps that extend the functionality of Claude Desktop.
 
