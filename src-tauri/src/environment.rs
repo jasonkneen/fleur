@@ -281,10 +281,7 @@ fn check_node_version() -> Result<String, String> {
             return Ok(version);
         }
 
-        info!(
-            "Found Node.js {} but {} is required",
-            version, NODE_VERSION
-        );
+        info!("Found Node.js {} but {} is required", version, NODE_VERSION);
         return Ok(version);
     }
 
