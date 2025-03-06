@@ -128,17 +128,17 @@ export function AppInstallButton({
         key={isInstalled ? "installed" : "not-installed"}
         size="sm"
         className={cn(
-          "transition-colors rounded-full px-6",
+          "transition-colors rounded-lg ",
           !isConfigured
-            ? "bg-muted text-muted-foreground cursor-not-allowed"
+            ? "bg-transparent text-muted-foreground cursor-not-allowed"
             : isInstalled
-              ? "bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30"
-              : "bg-secondary hover:bg-secondary/80 text-blue-600 dark:text-blue-400"
+              ? "text-sand/20 hover:bg-sand/50"
+              : "bg-sand px-6 border border-border hover:bg-sand/50 text-sand/20 dark:text-blue-400"
         )}
         disabled={!isConfigured}
         onClick={handleGetClick}
-        variant="secondary">
-        {!isConfigured ? "Coming soon" : isInstalled ? "Uninstall" : "Install"}
+        variant="ghost">
+        {!isConfigured ? "Coming soon" : isInstalled ? "Uninstall" : "Get"}
       </Button>
       {showConfigure && isInstalled && app.setup && app.setup.length > 0 && (
         <Dialog>

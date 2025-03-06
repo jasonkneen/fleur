@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Settings as SettingsIcon } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import { updateTauriTheme } from "@/lib/update-tauri-theme";
 import { Separator } from "@/components/ui/separator";
@@ -35,9 +34,9 @@ export function Settings() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <SettingsIcon className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2 cursor-pointer">
+          <img src="/icons/cog.svg" className="h-4 w-4" />
+        </div>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

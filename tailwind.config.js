@@ -5,6 +5,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        sand: "var(--sand)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

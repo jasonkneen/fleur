@@ -29,9 +29,9 @@ export function Home({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-start">
-        <h2 className="w-[100px] text-4xl font-bold text-gray-900 dark:text-gray-100">Popular Apps</h2>
+        <h2 className="w-[100px] text-4xl font-bold text-gray-900 dark:text-gray-100">Apps</h2>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-row-8 gap-x-5">
         {apps.map((app) => (
           <AppListItem
             key={app.name}

@@ -1,7 +1,4 @@
-
-import { Send } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { Button } from '@/components/ui/button';
 
 export const Feedback = () => {
   const handleFeedbackClick = async () => {
@@ -13,14 +10,11 @@ export const Feedback = () => {
   };
 
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
+    <div 
       onClick={handleFeedbackClick}
-      className="flex items-center gap-2"
+      className="flex items-center gap-2 cursor-pointer"
     >
-      <Send className="h-4 w-4" />
-      Feedback
-    </Button>
+      <img src="/icons/feedback.svg" className="h-4 w-4" />
+    </div>
   );
 };

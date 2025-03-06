@@ -14,7 +14,7 @@ export function AppDescription({ app }: AppDescriptionProps) {
           <h2 className="text-lg font-semibold mb-2">Features</h2>
           <div className="grid grid-cols-2 gap-4">
             {features?.map((feature) => (
-              <div key={feature.name} className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4 flex flex-col gap-2">
+              <div key={feature.name} className="bg-sand rounded-lg p-4 flex flex-col gap-2">
                 <p className="text-sm font-semibold">{feature.name}</p>
                 <p className="text-sm leading-relaxed italic text-zinc-600 dark:text-zinc-400">"{feature.prompt}"</p>
               </div>
