@@ -4,7 +4,7 @@
 </div>
 
 <div align="center">
-  
+
 [![License](https://img.shields.io/github/license/fleuristes/fleur?style=flat)](https://github.com/fleuristes/fleur/blob/main/LICENSE)
 
 </div>
@@ -21,7 +21,7 @@ All without having to use a command line. Fleur is made for non-technical users 
 To install Fleur open the terminal and run the following command:
 
 ```bash
-curl -fsSL https://fleur.sh/ | sh
+curl -fsSL fleur.sh | sh
 ```
 
 ## Features
