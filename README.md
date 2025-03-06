@@ -5,8 +5,8 @@
 
 <div align="center">
   
-[![License](https://img.shields.io/npm/l/fleuristes/fleur.svg?style=flat)](https://github.com/fleuristes/fleur/blob/main/LICENSE)
-  
+[![License](https://img.shields.io/github/license/fleuristes/fleur?style=flat)](https://github.com/fleuristes/fleur/blob/main/LICENSE)
+
 </div>
 
 
