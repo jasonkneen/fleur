@@ -1,26 +1,31 @@
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
-import { getVersion } from "@tauri-apps/api/app";
-import { updateTauriTheme } from "@/lib/update-tauri-theme";
-import { Separator } from "@/components/ui/separator";
+import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { getVersion } from '@tauri-apps/api/app';
+import { refreshApps } from '@/store/app';
+import { updateTauriTheme } from '@/lib/update-tauri-theme';
+import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
   const [version, setVersion] = useState<string>("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -29,6 +34,23 @@ export function Settings() {
   const updateTheme = async (theme: string) => {
     setTheme(theme);
     await updateTauriTheme(theme);
+  };
+
+  const handleOpenRegistry = async () => {
+    await openUrl('https://github.com/fleuristes/app-registry');
+  };
+
+  const handleRefreshApps = async () => {
+    try {
+      setIsRefreshing(true);
+      await refreshApps();
+    } catch (error) {
+      console.error('Failed to refresh apps:', error);
+    } finally {
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 1000);
+    }
   };
 
   return (
@@ -43,6 +65,32 @@ export function Settings() {
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Apps</label>
+            <p className="text-sm text-muted-foreground">
+              Manage the apps listed in Fleur
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              size="sm"
+              variant="outline" 
+              className="w-full"
+              onClick={handleRefreshApps}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? "Updating..." : "Update"}
+            </Button>
+            <Button 
+              size="sm"
+              variant="outline" 
+              className="w-full"
+              onClick={handleOpenRegistry}
+            >
+              Add an app
+            </Button>
+          </div>
+          <Separator />
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">Theme</label>
@@ -52,7 +100,7 @@ export function Settings() {
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="capitalize">
+                <Button size="sm" variant="outline" className="capitalize">
                   {theme === "system"
                     ? "System"
                     : theme === "dark"
@@ -90,7 +138,11 @@ export function Settings() {
                 Current Fleur version
               </p>
             </div>
-            <span className="text-sm font-mono">{version}</span>
+            <div className="flex gap-2 items-center">
+              <span className="text-sm font-mono">{version}</span>
+              <div>                
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>

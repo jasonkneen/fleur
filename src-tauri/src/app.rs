@@ -548,3 +548,24 @@ pub fn get_app_registry() -> Result<Value, String> {
     }
     result
 }
+
+// New function to clear the app registry cache and force a refresh
+#[tauri::command]
+pub fn refresh_app_registry() -> Result<Value, String> {
+    info!("Refreshing app registry...");
+    
+    // Clear the cache
+    {
+        let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
+        *cache = None;
+        info!("App registry cache cleared");
+    }
+    
+    // Fetch fresh registry
+    let result = fetch_app_registry();
+    match &result {
+        Ok(value) => info!("Successfully refreshed app registry: {}", value),
+        Err(e) => error!("Failed to refresh app registry: {}", e),
+    }
+    result
+}

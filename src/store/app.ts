@@ -87,3 +87,35 @@ export const updateAppInstallation = (appName: string, isInstalled: boolean) => 
     },
   }));
 };
+
+export const refreshApps = async () => {
+  try {
+    appStore.setState((state) => ({
+      ...state,
+      isLoadingApps: true,
+    }));
+
+    const result = await invoke('refresh_app_registry');
+    const apps = result as App[];
+    
+    console.log('Refreshed apps:', apps);
+    
+    appStore.setState((state) => ({
+      ...state,
+      apps,
+      isLoadingApps: false,
+    }));
+
+    // Also refresh the app statuses
+    await loadAppStatuses();
+
+    return apps;
+  } catch (error) {
+    console.error('Failed to refresh apps:', error);
+    appStore.setState((state) => ({
+      ...state,
+      isLoadingApps: false,
+    }));
+    throw error;
+  }
+};
