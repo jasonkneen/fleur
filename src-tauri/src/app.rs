@@ -575,13 +575,14 @@ pub fn install_fleur_mcp() -> Result<String, String> {
     info!("Installing fleur-mcp...");
 
     let mut config_json = get_config()?;
+    let uvx_path = get_uvx_path()?;
 
     if let Some(mcp_servers) = config_json
         .get_mut("mcpServers")
         .and_then(|v| v.as_object_mut())
     {
         let app_config = json!({
-            "command": "/Users/vinayak/.local/bin/uvx",
+            "command": uvx_path,
             "args": ["--from", "git+https://github.com/fleuristes/fleur-mcp", "fleur-mcp"]
         });
 
