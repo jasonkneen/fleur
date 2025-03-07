@@ -1,12 +1,12 @@
-import { toast } from "sonner";
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { useNavigate } from "@tanstack/react-router";
-import { AppInstallButtonProps } from "@/types/components/app";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ConfigurationMenu } from "./configuration";
-import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { useNavigate } from '@tanstack/react-router';
+import { AppInstallButtonProps } from '@/types/components/app';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { ConfigurationMenu } from './configuration';
+import { Dialog, DialogContent, DialogTrigger } from '../ui/dialog';
 
 export function AppInstallButton({
   app,
@@ -47,13 +47,11 @@ export function AppInstallButton({
 
     try {
       if (isInstalled) {
-        // Uninstall app
         const result = await invoke("uninstall", {
           appName: app.name,
         });
         console.log(result);
       } else {
-        // Install app with environment variables if setup exists
         const result = await invoke("install", {
           appName: app.name,
           envVars: app.setup && app.setup.length > 0 ? setupValues : null,
@@ -61,7 +59,6 @@ export function AppInstallButton({
         console.log(result);
       }
 
-      // Refresh installation status after action
       const newIsInstalled = await invoke<boolean>("is_installed", {
         appName: app.name,
       });
@@ -124,29 +121,12 @@ export function AppInstallButton({
 
   return (
     <div className="flex items-center gap-2">
-      <Button
-        key={isInstalled ? "installed" : "not-installed"}
-        size="sm"
-        className={cn(
-          "transition-colors rounded-lg ",
-          !isConfigured
-            ? "bg-transparent text-muted-foreground cursor-not-allowed"
-            : isInstalled
-              ? "text-sand/20 hover:bg-sand/50"
-              : "bg-sand px-6 border border-border hover:bg-sand/50 text-sand/20 dark:text-blue-400"
-        )}
-        disabled={!isConfigured}
-        onClick={handleGetClick}
-        variant="ghost">
-        {!isConfigured ? "Coming soon" : isInstalled ? "Uninstall" : "Get"}
-      </Button>
       {showConfigure && isInstalled && app.setup && app.setup.length > 0 && (
         <Dialog>
           <DialogTrigger asChild>
             <Button
               size="sm"
-              className="transition-colors rounded-full px-6"
-              variant="secondary"
+              className="shadow-sm transition-colors px-3 bg-transparent text-sand/20 dark:text-blue-400 border border-sand-100 border-border hover:bg-transparent dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
               onClick={() =>
                 navigate({ to: "/app/$name", params: { name: app.name } })
               }>
@@ -165,6 +145,22 @@ export function AppInstallButton({
           </DialogContent>
         </Dialog>
       )}
+      <Button
+        key={isInstalled ? "installed" : "not-installed"}
+        size="sm"
+        className={cn(
+          "transition-colors rounded-lg ",
+          !isConfigured
+            ? "bg-transparent text-muted-foreground cursor-not-allowed"
+            : isInstalled
+              ? "text-sand/20 hover:bg-sand/50 hover:text-red-500 hover:bg-red-500/10"
+              : "bg-sand px-6 border border-border hover:bg-sand/50 text-sand/20 dark:text-blue-400"
+        )}
+        disabled={!isConfigured}
+        onClick={handleGetClick}
+        variant="ghost">
+        {!isConfigured ? "Coming soon" : isInstalled ? "Remove" : "Get"}
+      </Button>
     </div>
   );
 }

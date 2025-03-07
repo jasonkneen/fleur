@@ -21,7 +21,7 @@ export function AppHeader({ app, isConfigured, isInstalled, onInstallationChange
           
           {/* App Info */}
           <div className="flex-1 min-w-0 h-full flex flex-col justify-between">
-            <div className="flex items-start h-full">
+            <div className="flex items-start h-full justify-between">
               <div>
                 <h1 className="text-[2rem] font-semibold leading-tight text-gray-900 dark:text-gray-100 mb-1">
                   {app.name}
