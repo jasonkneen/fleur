@@ -1,11 +1,11 @@
 {
-    "version": "0.2.1",
+    "version": "0.2.2",
     "notes": "See the assets to download this version and install.",
-    "pub_date": "2025-03-07T15:39:33Z",
+    "pub_date": "2025-03-07T16:01:48Z",
     "platforms": {
         "darwin-aarch64": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTQ3N6ZzZhc3lGWDhXd2pWWXdacSt5aFVmNmNEWDE5bEtmVFdhYVpSY3BTc3MxblY3SGY4L3BBMlNoQXp5dVIwNGsvRHkxa0x1cm01a1pZMGNmR2lqaUtUdTZTbnNuTkFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQxMzYxOTczCWZpbGU6RmxldXIuYXBwLnRhci5negpwRmdDV3NLT21tM2EvdUl4Nll6emdoOWlzSWVXaVFVSGpneHVmNHdOaXNWRnhKZUp2b1g3TzJtbHFVR0Q2Qk9HeTcveE1FbXhhS2ZtUGJ1ZmVhMGFEUT09Cg==",
-            "url": "https://github.com/fleuristes/fleur/releases/download/v0.2.1/Fleur.app.tar.gz"
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTQ3N6ZzZhc3lGWHcweG9KanlLL09Nci9PMVYxdmZaOTlNNHFsUmJDRHRlWXRDMWY4di9YRTNRY1g5UXlxMzlmakUyRVhDVlVVeWZYMlRQU0N4Y0pxYW4wTlZLem13b3d3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzQxMzYzMzA4CWZpbGU6RmxldXIuYXBwLnRhci5negpjSGIvMm9tTXRnQW9QeXBmalNCWDM4VnJ3SUE3eHlKWThOTVR4dlJnZ05aeEM3dDIvL3ZRYlMyN1VRajhXTXkxNkdtSy9odnZyN0VPMi9CV2phMmxEZz09Cg==",
+            "url": "https://github.com/fleuristes/fleur/releases/download/v0.2.2/Fleur.app.tar.gz"
         }
     }
 }
