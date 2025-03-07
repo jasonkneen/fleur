@@ -151,4 +151,6 @@ git commit -am 'Bump version to ${VERSION#v}'
 git tag $VERSION
 git push && git push --tags
 
-gh release create $VERSION --title "Fleur $VERSION" src-tauri/latest.json src-tauri/target/universal-apple-darwin/release/bundle/dmg/Fleur_${VERSION#v}_universal_signed.dmg src-tauri/target/universal-apple-darwin/release/bundle/macos/Fleur.app.tar.gz
+cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/Fleur_${VERSION#v}_universal_signed.dmg src-tauri/target/universal-apple-darwin/release/bundle/dmg/Fleur.dmg
+
+gh release create $VERSION --title "Fleur $VERSION" src-tauri/latest.json src-tauri/target/universal-apple-darwin/release/bundle/dmg/Fleur.dmg src-tauri/target/universal-apple-darwin/release/bundle/macos/Fleur.app.tar.gz
