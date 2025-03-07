@@ -146,3 +146,9 @@ echo "1. Commit the version changes: git commit -am 'Bump version to ${VERSION#v
 echo "2. Create a git tag: git tag $VERSION"
 echo "3. Push changes and tags: git push && git push --tags"
 echo "4. Create a GitHub release with the generated artifacts"
+
+git commit -am 'Bump version to ${VERSION#v}'
+git tag $VERSION
+git push && git push --tags
+
+gh release create $VERSION --title "Fleur $VERSION" src-tauri/latest.json src-tauri/target/universal-apple-darwin/release/bundle/dmg/Fleur_${VERSION#v}_universal_signed.dmg src-tauri/target/universal-apple-darwin/release/bundle/macos/Fleur.app.tar.gz
