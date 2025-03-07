@@ -170,7 +170,7 @@ export function Settings() {
           <Separator />
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Fleur onboarding</label>
+              <label className="text-sm font-medium">Onboarding</label>
               <p className="text-sm text-muted-foreground">
                 Enable Fleur onboarding in Claude
               </p>
