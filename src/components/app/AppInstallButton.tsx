@@ -125,8 +125,9 @@ export function AppInstallButton({
         <Dialog>
           <DialogTrigger asChild>
             <Button
+              variant="ghost"
               size="sm"
-              className="shadow-sm transition-colors px-3 bg-transparent text-sand/20 dark:text-blue-400 border border-sand-100 border-border hover:bg-transparent dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
+              className="transition-colors rounded-lg px-3 bg-transparent text-sand/20 dark:text-blue-400 border border-sand-100 border-border hover:bg-transparent dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
               onClick={() =>
                 navigate({ to: "/app/$name", params: { name: app.name } })
               }>
@@ -154,7 +155,7 @@ export function AppInstallButton({
             ? "bg-transparent text-muted-foreground cursor-not-allowed"
             : isInstalled
               ? "text-sand/20 hover:bg-sand/50 hover:text-red-500 hover:bg-red-500/10"
-              : "bg-sand px-6 border border-border hover:bg-sand/50 text-sand/20 dark:text-blue-400"
+              : "bg-sand px-6 border border-border hover:bg-sand/50 text-sand/20 dark:text-blue-400 dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
         )}
         disabled={!isConfigured}
         onClick={handleGetClick}
