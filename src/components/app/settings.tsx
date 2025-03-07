@@ -24,9 +24,7 @@ export function Settings() {
   const { theme, setTheme } = useTheme();
   const [version, setVersion] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
-
+  
   useEffect(() => {
     getVersion().then(setVersion);
   }, []);
