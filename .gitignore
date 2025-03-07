@@ -2,6 +2,7 @@
 *.p12
 *.cer
 *.txt
+.env
 
 # Logs
 logs
