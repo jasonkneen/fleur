@@ -553,14 +553,14 @@ pub fn get_app_registry() -> Result<Value, String> {
 #[tauri::command]
 pub fn refresh_app_registry() -> Result<Value, String> {
     info!("Refreshing app registry...");
-    
+
     // Clear the cache
     {
         let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
         *cache = None;
         info!("App registry cache cleared");
     }
-    
+
     // Fetch fresh registry
     let result = fetch_app_registry();
     match &result {
@@ -568,4 +568,57 @@ pub fn refresh_app_registry() -> Result<Value, String> {
         Err(e) => error!("Failed to refresh app registry: {}", e),
     }
     result
+}
+
+#[tauri::command]
+pub fn install_fleur_mcp() -> Result<String, String> {
+    info!("Installing fleur-mcp...");
+
+    let mut config_json = get_config()?;
+
+    if let Some(mcp_servers) = config_json
+        .get_mut("mcpServers")
+        .and_then(|v| v.as_object_mut())
+    {
+        let app_config = json!({
+            "command": "/Users/vinayak/.local/bin/uvx",
+            "args": ["--from", "git+https://github.com/fleuristes/fleur-mcp", "fleur-mcp"]
+        });
+
+        debug!("Adding config for fleur: {:?}", app_config);
+        mcp_servers.insert("fleur".to_string(), app_config);
+        save_config(&config_json)?;
+
+        info!("Successfully installed fleur-mcp");
+        Ok("Added fleur-mcp configuration".to_string())
+    } else {
+        let err = "Failed to find mcpServers in config".to_string();
+        error!("{}", err);
+        Err(err)
+    }
+}
+
+#[tauri::command]
+pub fn uninstall_fleur_mcp() -> Result<String, String> {
+    info!("Uninstalling fleur-mcp...");
+
+    let mut config_json = get_config()?;
+
+    if let Some(mcp_servers) = config_json
+        .get_mut("mcpServers")
+        .and_then(|v| v.as_object_mut())
+    {
+        if mcp_servers.remove("fleur").is_some() {
+            save_config(&config_json)?;
+            info!("Successfully uninstalled fleur-mcp");
+            Ok("Removed fleur-mcp configuration".to_string())
+        } else {
+            warn!("fleur-mcp configuration was not found");
+            Ok("fleur-mcp configuration was not found".to_string())
+        }
+    } else {
+        let err = "Failed to find mcpServers in config".to_string();
+        error!("{}", err);
+        Err(err)
+    }
 }
