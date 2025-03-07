@@ -129,6 +129,7 @@ pub fn run() {
             app::restart_claude_app,
             app::install_fleur_mcp,
             app::uninstall_fleur_mcp,
+            app::check_onboarding_completed,
             environment::ensure_environment,
             log_from_frontend,
             open_system_url,
