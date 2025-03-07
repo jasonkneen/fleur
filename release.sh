@@ -147,7 +147,7 @@ echo "2. Create a git tag: git tag $VERSION"
 echo "3. Push changes and tags: git push && git push --tags"
 echo "4. Create a GitHub release with the generated artifacts"
 
-git commit -am 'Bump version to ${VERSION#v}'
+git commit -am "Bump version to $VERSION"
 git tag $VERSION
 git push && git push --tags
 
