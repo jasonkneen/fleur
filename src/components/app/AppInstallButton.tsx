@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useNavigate } from '@tanstack/react-router';
 import { AppInstallButtonProps } from '@/types/components/app';
 import { cn } from '@/lib/utils';
+import { hasConfig } from '@/lib/hasConfig';
 import { Button } from '@/components/ui/button';
 import { ConfigurationMenu } from './configuration';
 import { Dialog, DialogContent, DialogTrigger } from '../ui/dialog';
@@ -20,8 +21,8 @@ export function AppInstallButton({
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({
     all: false,
   });
+  const [showConfigDialog, setShowConfigDialog] = useState(false);
 
-  // Load existing ENV values when component mounts
   useEffect(() => {
     const loadEnvValues = async () => {
       if (app.setup && app.setup.length > 0) {
@@ -52,6 +53,12 @@ export function AppInstallButton({
         });
         console.log(result);
       } else {
+        if (hasConfig(app)) {
+          // Show configuration dialog first instead of installing immediately
+          setShowConfigDialog(true);
+          return;
+        }
+
         const result = await invoke("install", {
           appName: app.name,
           envVars: app.setup && app.setup.length > 0 ? setupValues : null,
@@ -121,7 +128,7 @@ export function AppInstallButton({
 
   return (
     <div className="flex items-center gap-2">
-      {showConfigure && isInstalled && app.setup && app.setup.length > 0 && (
+      {showConfigure && isInstalled && hasConfig(app) && (
         <Dialog>
           <DialogTrigger asChild>
             <Button
@@ -137,7 +144,7 @@ export function AppInstallButton({
           <DialogContent>
             <ConfigurationMenu
               appName={app.name}
-              setup={app.setup}
+              setup={app.setup || []}
               setupValues={setupValues}
               onInputChange={handleInputChange}
               onSave={saveAll}
@@ -146,6 +153,58 @@ export function AppInstallButton({
           </DialogContent>
         </Dialog>
       )}
+      <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
+        <DialogContent>
+          <ConfigurationMenu
+            appName={app.name}
+            setup={app.setup || []}
+            setupValues={setupValues}
+            onInputChange={handleInputChange}
+            onSave={async () => {
+              await saveAll();
+              setShowConfigDialog(false);
+              
+              // Proceed with installation after configuration is saved
+              try {
+                const result = await invoke("install", {
+                  appName: app.name,
+                  envVars: app.setup && app.setup.length > 0 ? setupValues : null,
+                });
+                console.log(result);
+                
+                const newIsInstalled = await invoke<boolean>("is_installed", {
+                  appName: app.name,
+                });
+                onInstallationChange(newIsInstalled);
+                
+                toast.success(`${app.name} installed`, {
+                  action: {
+                    label: "Relaunch Claude",
+                    onClick: async () => {
+                      try {
+                        await invoke("restart_claude_app");
+                        toast.success("Claude app is restarting...");
+                      } catch (error) {
+                        console.error("Failed to restart Claude app:", error);
+                        toast.error("Failed to restart Claude app");
+                      }
+                    },
+                  },
+                  duration: 10000,
+                });
+                
+                if (app.setup && app.setup.length > 0 && newIsInstalled) {
+                  navigate({ to: "/app/$name", params: { name: app.name } });
+                }
+              } catch (error) {
+                console.error("Failed to install app:", error);
+                toast.error(`Failed to install ${app.name}`);
+              }
+            }}
+            isLoading={isLoading.all}
+          />
+        </DialogContent>
+      </Dialog>
       <Button
         key={isInstalled ? "installed" : "not-installed"}
         size="sm"
