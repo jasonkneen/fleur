@@ -25,6 +25,19 @@
     --destructive-foreground: 210 40% 98%;
     --ring: 215 20.2% 65.1%;
     --radius: 0.5rem;
+
+    
+    /* Sand color with shades */
+    --sand-50: 45 30% 96%;
+    --sand-100: 45 30% 92%;
+    --sand-200: 45 30% 85%;
+    --sand-300: 45 30% 75%;
+    --sand-400: 45 30% 65%;
+    --sand-500: 45 30% 55%;
+    --sand-600: 45 30% 45%;
+    --sand-700: 45 30% 35%;
+    --sand-800: 45 30% 25%;
+    --sand-900: 45 30% 15%;
   }
 
   .dark {
@@ -48,6 +61,18 @@
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
     --ring: 216 34% 17%;
+    
+    /* Sand color with shades in dark mode */
+    --sand-50: 45 15% 15%;
+    --sand-100: 45 15% 20%;
+    --sand-200: 45 15% 30%;
+    --sand-300: 45 15% 40%;
+    --sand-400: 45 15% 50%;
+    --sand-500: 45 15% 60%;
+    --sand-600: 45 15% 70%;
+    --sand-700: 45 15% 80%;
+    --sand-800: 45 15% 90%;
+    --sand-900: 45 15% 95%;
   }
 }
 

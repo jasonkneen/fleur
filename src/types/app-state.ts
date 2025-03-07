@@ -10,6 +10,7 @@ interface AppState {
   isLoadingStatuses: boolean;
   apps: App[];
   isLoadingApps: boolean;
+  isOnboardingCompleted: boolean;
 }
 
 export type { AppState };

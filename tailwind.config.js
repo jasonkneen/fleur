@@ -5,7 +5,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        sand: "var(--sand)",
+        sand: {
+          50: "hsl(var(--sand-50))",
+          100: "hsl(var(--sand-100))",
+          200: "hsl(var(--sand-200))",
+          300: "hsl(var(--sand-300))",
+          400: "hsl(var(--sand-400))",
+          500: "hsl(var(--sand-500))",
+          600: "hsl(var(--sand-600))",
+          700: "hsl(var(--sand-700))",
+          800: "hsl(var(--sand-800))",
+          900: "hsl(var(--sand-900))",
+          DEFAULT: "hsl(var(--sand))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

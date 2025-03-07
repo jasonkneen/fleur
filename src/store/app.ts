@@ -3,6 +3,7 @@ import { Store } from '@tanstack/store';
 
 import type { AppState } from '@/types/app-state';
 import type { App } from '@/types/components/app';
+import { isOnboardingCompleted as checkOnboardingCompleted, markOnboardingCompleted as markOnboardingDone } from '@/lib/onboarding';
 
 const initialAppStatuses = {
   installed: {} as Record<string, boolean>,
@@ -16,6 +17,7 @@ export const appStore = new Store<AppState>({
   isLoadingStatuses: true,
   apps: [],
   isLoadingApps: true,
+  isOnboardingCompleted: checkOnboardingCompleted(),
 });
 
 export const loadAppStatuses = async () => {
@@ -118,4 +120,12 @@ export const refreshApps = async () => {
     }));
     throw error;
   }
+};
+
+export const completeOnboarding = () => {
+  markOnboardingDone();
+  appStore.setState((state) => ({
+    ...state,
+    isOnboardingCompleted: true,
+  }));
 };
