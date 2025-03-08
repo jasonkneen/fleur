@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { cn } from "@/lib/utils";
-import InstallMcpUI from "./InstallMcp";
-import { Dialog } from "../ui/dialog";
-import { Button } from "../ui/button";
-import { TextAnimate } from "../magicui/text-animate";
-import { BlurFade } from "../magicui/blur-fade";
+import React, { useEffect, useRef, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { cn } from '@/lib/utils';
+import InstallMcpUI from './InstallMcp';
+import { Dialog } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { TextAnimate } from '../magicui/text-animate';
+import { BlurFade } from '../magicui/blur-fade';
 
 interface OnboardingScreenProps {
   isOpen: boolean;
@@ -117,7 +117,7 @@ export function OnboardingScreen({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onComplete()}>
-      <DialogContentWithoutCloseButton className="w-screen bg-sand-100 max-w-screen h-screen">
+      <DialogContentWithoutCloseButton className="w-screen bg-sand-100 max-w-screen h-screen dark:bg-sand-200">
         <div className="flex flex-col justify-between h-full w-full py-8 ">
           <div>
             <div className="relative top-[80px] mx-auto flex w-full items-center justify-center">
@@ -152,7 +152,7 @@ export function OnboardingScreen({
               </div>
             </div>
             <div className="mt-20">
-              <p className="text-[44px] text-center font-serif -tracking-[1px] leading-none">
+              <p className="text-[44px] text-center font-serif -tracking-[1px] leading-none dark:text-sand-900">
                 <TextAnimate
                   delay={currentStep === 0 ? 2 : 0}
                   animation="blurInUp"
@@ -160,7 +160,7 @@ export function OnboardingScreen({
                   {steps[currentStep].title}
                 </TextAnimate>
               </p>
-              <p className="text-sm font-serif text-center text-black mt-2">
+              <p className="text-sm font-serif text-center text-black mt-2 dark:text-sand-800">
                 <TextAnimate
                   delay={currentStep === 0 ? 2.5 : 0.5}
                   animation="blurInUp"
@@ -179,7 +179,7 @@ export function OnboardingScreen({
                     <Button
                       onClick={handleOpenClaude}
                       variant="secondary"
-                      className="w-full bg-sand-200 border border-sand-200 hover:bg-sand-100 text-sand-800">
+                      className="w-full bg-sand-200 dark:bg-sand-800 border border-sand-200 dark:border-sand-800 hover:bg-sand-100 dark:hover:bg-sand-800 text-sand-800 dark:text-sand-100">
                       Open Claude
                     </Button>
                   </div>
