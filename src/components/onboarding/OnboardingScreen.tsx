@@ -191,7 +191,7 @@ export function OnboardingScreen({
                     <Button
                       onClick={handleAddMoreApps}
                       variant="secondary"
-                      className="w-full bg-sand-200 border border-sand-200 hover:bg-sand-100 text-sand-800">
+                      className="w-full bg-sand-200 dark:bg-sand-800 border border-sand-200 hover:bg-sand-100 text-sand-800 dark:border-sand-800 dark:text-sand-100 dark:hover:bg-sand-800 ">
                       Add more apps
                     </Button>
                   </div>
