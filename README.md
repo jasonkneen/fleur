@@ -10,7 +10,7 @@
 </div>
 
 
-![Fleur Logo](public/hero-asset.png)
+[![Fleur Logo](public/hero-asset.png)](https://fleurmcp.com)
 
 Fleur is a desktop application that serves as an app marketplace for MCPs. It allows you to discover, install, and manage apps that extend the functionality of Claude Desktop.
 
