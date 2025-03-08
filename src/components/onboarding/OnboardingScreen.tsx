@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { cn } from '@/lib/utils';
-import InstallMcpUI from './InstallMcp';
-import { Dialog } from '../ui/dialog';
-import { Button } from '../ui/button';
-import { TextAnimate } from '../magicui/text-animate';
-import { BlurFade } from '../magicui/blur-fade';
+import React, { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { cn } from "@/lib/utils";
+import InstallMcpUI from "./InstallMcp";
+import { Dialog } from "../ui/dialog";
+import { Button } from "../ui/button";
+import { TextAnimate } from "../magicui/text-animate";
+import { BlurFade } from "../magicui/blur-fade";
 
 interface OnboardingScreenProps {
   isOpen: boolean;
@@ -39,6 +39,7 @@ export function OnboardingScreen({
   onComplete,
 }: OnboardingScreenProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [isClaudeInstalled, setIsClaudeInstalled] = useState(false);
   const claudeOpened = useRef(false);
 
   const steps = [
@@ -48,13 +49,29 @@ export function OnboardingScreen({
     },
     {
       title: "Fantastic!",
-      description: `Next, open Claude and write "Hello Fleur"`,
+      description: isClaudeInstalled
+        ? `Next, open Claude and write "Hello Fleur"`
+        : "Next, download and install Claude",
     },
     {
       title: "Done!",
       description: "You're all set. Enjoy using Fleur!",
     },
   ];
+
+  useEffect(() => {
+    // Check if Claude is installed when component mounts or when step 1 is reached
+    if (currentStep === 1) {
+      invoke<boolean>("check_claude_installed")
+        .then((installed) => {
+          setIsClaudeInstalled(installed);
+          console.log("Claude installed:", installed);
+        })
+        .catch((error) => {
+          console.error("Failed to check Claude installation:", error);
+        });
+    }
+  }, [currentStep]);
 
   useEffect(() => {
     if (currentStep !== 1) return;
@@ -75,7 +92,21 @@ export function OnboardingScreen({
       }
     };
 
+    // Set up polling to check status every 2 seconds
+    const intervalId = setInterval(checkOnboardingStatus, 2000);
+
+    // Set up window focus handler
     const handleWindowFocus = () => {
+      // When window regains focus, check Claude installation status again
+      invoke<boolean>("check_claude_installed")
+        .then((installed) => {
+          setIsClaudeInstalled(installed);
+          console.log("Claude installed (focus check):", installed);
+        })
+        .catch((error) => {
+          console.error("Failed to check Claude installation:", error);
+        });
+
       checkOnboardingStatus();
     };
 
@@ -83,6 +114,7 @@ export function OnboardingScreen({
 
     return () => {
       window.removeEventListener("focus", handleWindowFocus);
+      clearInterval(intervalId);
     };
   }, [currentStep]);
 
@@ -108,6 +140,18 @@ export function OnboardingScreen({
       .catch((error) => {
         console.error("Failed to open Claude:", error);
         claudeOpened.current = false; // Reset flag if there was an error
+      });
+  };
+
+  const handleDownloadClaude = () => {
+    invoke("open_system_url", {
+      url: "https://claude.ai/download",
+    })
+      .then(() => {
+        console.log("Opened Claude download page");
+      })
+      .catch((error) => {
+        console.error("Failed to open download page:", error);
       });
   };
 
@@ -177,10 +221,14 @@ export function OnboardingScreen({
                 <BlurFade delay={1.5}>
                   <div className="flex justify-center">
                     <Button
-                      onClick={handleOpenClaude}
+                      onClick={
+                        isClaudeInstalled
+                          ? handleOpenClaude
+                          : handleDownloadClaude
+                      }
                       variant="secondary"
                       className="w-full bg-sand-200 dark:bg-sand-800 border border-sand-200 dark:border-sand-800 hover:bg-sand-100 dark:hover:bg-sand-800 text-sand-800 dark:text-sand-100">
-                      Open Claude
+                      {isClaudeInstalled ? "Open Claude" : "Download Claude"}
                     </Button>
                   </div>
                 </BlurFade>

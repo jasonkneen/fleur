@@ -635,3 +635,18 @@ pub fn check_onboarding_completed() -> Result<bool, String> {
     debug!("Checking onboarding file at: {}", onboarding_file.display());
     Ok(onboarding_file.exists())
 }
+
+#[tauri::command]
+pub fn check_claude_installed() -> Result<bool, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let claude_app_path = std::path::PathBuf::from("/Applications/Claude.app");
+        debug!("Checking for Claude.app at: {}", claude_app_path.display());
+        return Ok(claude_app_path.exists());
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        return Ok(false);
+    }
+}
