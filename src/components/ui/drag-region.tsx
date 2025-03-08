@@ -6,7 +6,7 @@ interface DragRegionProps {
 export function DragRegion({ className = '' }: DragRegionProps) {
   return (
     <div 
-      data-tauri-drag-region="true"
+      data-tauri-drag-region
       className={`h-8 w-full title-panel ${className}`} 
     />
   );
