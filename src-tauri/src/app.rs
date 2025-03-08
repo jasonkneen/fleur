@@ -623,3 +623,15 @@ pub fn uninstall_fleur_mcp() -> Result<String, String> {
         Err(err)
     }
 }
+
+#[tauri::command]
+pub fn check_onboarding_completed() -> Result<bool, String> {
+    let home = match dirs::home_dir() {
+        Some(path) => path,
+        None => return Err("Could not determine home directory".to_string()),
+    };
+    let onboarding_file = home.join(".fleur/onboarding_completed");
+
+    debug!("Checking onboarding file at: {}", onboarding_file.display());
+    Ok(onboarding_file.exists())
+}
