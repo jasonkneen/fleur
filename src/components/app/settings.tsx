@@ -1,27 +1,27 @@
-import { toast } from "sonner";
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { invoke } from "@tauri-apps/api/core";
-import { getVersion } from "@tauri-apps/api/app";
-import { refreshApps } from "@/store/app";
-import { updateTauriTheme } from "@/lib/update-tauri-theme";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { invoke } from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
+import { refreshApps } from '@/store/app';
+import { updateTauriTheme } from '@/lib/update-tauri-theme';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
@@ -79,7 +79,7 @@ export function Settings() {
   };
 
   const handleOpenRegistry = async () => {
-    await openUrl("https://github.com/fleuristes/app-registry");
+    await openUrl("https://github.com/fleuristes/fleur");
   };
 
   const handleRefreshApps = async () => {
