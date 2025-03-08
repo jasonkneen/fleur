@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { cn } from "@/lib/utils";
-import InstallMcpUI from "./InstallMcp";
-import { Dialog } from "../ui/dialog";
-import { Button } from "../ui/button";
-import { TextAnimate } from "../magicui/text-animate";
-import { BlurFade } from "../magicui/blur-fade";
+import React, { useEffect, useRef, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { cn } from '@/lib/utils';
+import InstallMcpUI from './InstallMcp';
+import { Dialog } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { TextAnimate } from '../magicui/text-animate';
+import { BlurFade } from '../magicui/blur-fade';
+import { DragRegion } from '../ui/drag-region';
 
 interface OnboardingScreenProps {
   isOpen: boolean;
@@ -163,6 +164,7 @@ export function OnboardingScreen({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onComplete()}>
       <DialogContentWithoutCloseButton className="w-screen bg-sand-100 max-w-screen h-screen dark:bg-sand-200">
         <div className="flex flex-col justify-between h-full w-full py-8 ">
+          <DragRegion className="absolute z-overlay top-0 left-0 right-0" />
           <div>
             <div className="relative top-[80px] mx-auto flex w-full items-center justify-center">
               <div>
