@@ -18,7 +18,7 @@ All without having to use a command line. Fleur is made for non-technical users 
 
 ## Getting Started
 
-To install Fleur you can either download the [latest release](ttps://github.com/fleuristes/fleur/releases/latest/download/Fleur.dmg) or open the terminal and run the following command:
+To install Fleur you can either download the [latest release](https://github.com/fleuristes/fleur/releases/latest/download/Fleur.dmg) or open the terminal and run the following command:
 
 ```bash
 curl -fsSL fleur.sh | sh
