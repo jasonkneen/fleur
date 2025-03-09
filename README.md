@@ -16,7 +16,7 @@ Fleur is a desktop application that serves as an app marketplace for MCPs. It al
 
 All without having to use a command line. Fleur is made for non-technical users in mind, but is open-source and extensible so developers can make it their own.
 
-[#### Demo video](https://x.com/0xferruccio/status/1898429209388675554)
+[📺 Demo video](https://x.com/0xferruccio/status/1898429209388675554)
 
 ## Getting Started
 
