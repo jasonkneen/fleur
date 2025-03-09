@@ -73,6 +73,10 @@
     --sand-700: 45 15% 80%;
     --sand-800: 45 15% 90%;
     --sand-900: 45 15% 95%;
+
+    /* Brushed steel effect */
+    --brushed-steel: linear-gradient(135deg, #2a2a2a 25%, #1a1a1a 25%, #1a1a1a 50%, #2a2a2a 50%, #2a2a2a 75%, #1a1a1a 75%, #1a1a1a 100%);
+    --brushed-steel-highlight: linear-gradient(135deg, #3a3a3a 25%, #2a2a2a 25%, #2a2a2a 50%, #3a3a3a 50%, #3a3a3a 75%, #2a2a2a 75%, #2a2a2a 100%);
   }
 }
 
@@ -120,4 +124,11 @@
   100% {
     stroke-dashoffset: 0;
   }
+}
+
+/* Edge highlights for buttons and panels in dark mode */
+.dark .button, .dark .panel {
+  background: var(--brushed-steel);
+  border-radius: var(--radius);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }

@@ -51,6 +51,10 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        brushedSteel: {
+          DEFAULT: "var(--brushed-steel)",
+          highlight: "var(--brushed-steel-highlight)",
+        },
       },
       borderRadius: {
         lg: `var(--radius)`,

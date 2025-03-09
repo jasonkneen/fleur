@@ -20,8 +20,8 @@ export function AppListItem({
   onInstallationChange,
 }: AppListItemProps) {
   return (
-    <Card className="border-transparent bg-transparent shadow-none">
-      <CardContent className="py-4 px-0 border-b border-border">
+    <Card className="border-transparent bg-transparent shadow-none rounded-lg dark:shadow-brushed-steel-highlight">
+      <CardContent className="py-4 px-0 border-b border-border rounded-lg dark:shadow-brushed-steel-highlight">
         <div className="flex items-center gap-4">
           <Link
             className="flex-1 flex items-center gap-4"
@@ -49,4 +49,4 @@ export function AppListItem({
       </CardContent>
     </Card>
   );
-} 
+}

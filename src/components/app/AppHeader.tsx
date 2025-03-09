@@ -33,6 +33,7 @@ export function AppHeader({ app, isConfigured, isInstalled, onInstallationChange
                   isConfigured={isConfigured}
                   isInstalled={isInstalled}
                   onInstallationChange={onInstallationChange}
+                  className="rounded-lg shadow-md dark:shadow-brushed-steel-highlight"
                 />
               </div>
             </div>

@@ -209,7 +209,7 @@ export function AppInstallButton({
         key={isInstalled ? "installed" : "not-installed"}
         size="sm"
         className={cn(
-          "transition-colors rounded-lg ",
+          "transition-colors rounded-lg shadow-md dark:shadow-brushed-steel-highlight",
           !isConfigured
             ? "bg-transparent text-muted-foreground cursor-not-allowed"
             : isInstalled
