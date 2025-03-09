@@ -63,6 +63,10 @@ export function AppInstallButton({
           appName: app.name,
           envVars: app.setup && app.setup.length > 0 ? setupValues : null,
         });
+
+        window.analytics.track('app_installed', {
+          app_name: app.name,
+        });
         console.log(result);
       }
 
