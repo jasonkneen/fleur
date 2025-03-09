@@ -1,6 +1,7 @@
 import { App } from '@/types/components/app';
 import { AppInstallButton } from './AppInstallButton';
 import { AppIcon } from './AppIcon';
+import { TextMarkdown } from './TextMarkdown';
 
 interface AppHeaderProps {
   app: App;
@@ -56,7 +57,10 @@ export function AppHeader({ app, isConfigured, isInstalled, onInstallationChange
         </div>
         <div className="mt-8">
           <h2 className="text-lg font-semibold mb-2">About</h2>
-          <p className="text-gray-600 dark:text-gray-100">{app.description}</p>
+          <TextMarkdown
+            text={app.description}
+            className="text-gray-600 dark:text-gray-100"
+          />
         </div>
       </div>
     </>
