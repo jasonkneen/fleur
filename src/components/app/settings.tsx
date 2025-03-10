@@ -2,7 +2,6 @@ import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
 import { refreshApps } from '@/store/app';
 import { updateTauriTheme } from '@/lib/update-tauri-theme';
@@ -22,31 +21,18 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { OnboardingSettings } from './onboarding-settings';
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
   const [version, setVersion] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isFleurEnabled, setIsFleurEnabled] = useState(false);
-  const [isFleurToggling, setIsFleurToggling] = useState(false);
   const [isTelemetryEnabled, setIsTelemetryEnabled] = useState(true);
 
   useEffect(() => {
     getVersion().then(setVersion);
-    checkFleurStatus();
     checkTelemetryStatus();
   }, []);
-
-  const checkFleurStatus = async () => {
-    try {
-      const statuses = await invoke<{ installed: Record<string, boolean> }>(
-        "get_app_statuses"
-      );
-      setIsFleurEnabled(!!statuses.installed.fleur);
-    } catch (error) {
-      console.error("Failed to check Fleur status:", error);
-    }
-  };
 
   const checkTelemetryStatus = async () => {
     try {
@@ -55,33 +41,6 @@ export function Settings() {
       setIsTelemetryEnabled(!telemetryDisabled);
     } catch (error) {
       console.error("Failed to check telemetry status:", error);
-    }
-  };
-
-  const toggleFleur = async (enabled: boolean) => {
-    setIsFleurToggling(true);
-    try {
-      if (enabled) {
-        await invoke("install_fleur_mcp");
-        toast.success("Fleur onboarding enabled");
-      } else {
-        await invoke("uninstall_fleur_mcp");
-        toast.success("Fleur onboarding disabled");
-      }
-      setIsFleurEnabled(enabled);
-    } catch (error) {
-      console.error(
-        `Failed to ${enabled ? "install" : "uninstall"} Fleur MCP:`,
-        error
-      );
-      toast.error(
-        `Failed to ${enabled ? "enable" : "disable"} Fleur onboarding`,
-        {
-          description: String(error),
-        }
-      );
-    } finally {
-      setIsFleurToggling(false);
     }
   };
 
@@ -216,19 +175,7 @@ export function Settings() {
             </DropdownMenu>
           </div>
           <Separator />
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Onboarding</label>
-              <p className="text-sm text-muted-foreground">
-                Enable Fleur onboarding in Claude
-              </p>
-            </div>
-            <Switch
-              checked={isFleurEnabled}
-              disabled={isFleurToggling}
-              onCheckedChange={toggleFleur}
-            />
-          </div>
+          <OnboardingSettings />
           <Separator />
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">

@@ -636,6 +636,24 @@ pub fn check_onboarding_completed() -> Result<bool, String> {
     Ok(onboarding_file.exists())
 }
 
+
+#[tauri::command]
+pub fn reset_onboarding_completed() -> Result<bool, String> {
+    let home = match dirs::home_dir() {
+        Some(path) => path,
+        None => return Err("Could not determine home directory".to_string()),
+    };
+    let onboarding_file = home.join(".fleur/onboarding_completed");
+
+    debug!("Resetting onboarding file at: {}", onboarding_file.display());
+    if onboarding_file.exists() {
+        std::fs::remove_file(&onboarding_file).map_err(|e| format!("Failed to remove onboarding file: {}", e))?;
+    }
+
+    Ok(true)
+}
+
+
 #[tauri::command]
 pub fn check_claude_installed() -> Result<bool, String> {
     #[cfg(target_os = "macos")]
