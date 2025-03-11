@@ -86,7 +86,7 @@ export function Settings() {
   };
 
   const handleOpenRegistry = async () => {
-    await openUrl("https://github.com/fleuristes/fleur");
+    await openUrl("https://github.com/fleuristes/app-registry?tab=readme-ov-file#contributing-your-mcp");
   };
 
   const handleRefreshApps = async () => {
