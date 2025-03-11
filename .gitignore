@@ -31,3 +31,4 @@ dist-ssr
 .env
 Developer ID*.cer
 Developer ID*.p12
+.aider*
