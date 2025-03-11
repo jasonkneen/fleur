@@ -4,12 +4,13 @@ use fleur_lib::{
     app::{self, APP_REGISTRY_CACHE},
     environment,
 };
-use log::debug;
+use log::{debug, info};
 use serde_json::{json, Value};
 use serial_test::serial;
 use std::{thread, time::Duration};
 use tempfile;
 use uuid::Uuid;
+use env_logger;
 
 fn setup_test_registry() {
     let test_registry = json!([{
@@ -346,6 +347,178 @@ fn test_multiple_apps() {
 
     // Cleanup
     app::set_test_config_path(None);
+    cleanup_test_registry();
+    environment::set_test_mode(false);
+}
+
+#[test]
+#[serial]
+fn test_env_var_replacement_during_install() {
+    // Set up logging for this test
+    let _ = env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .is_test(true)
+        .try_init();
+
+    environment::set_test_mode(true);
+
+    // Setup test registry with environment variables in args
+    let test_registry = json!([{
+        "name": "EnvTest",
+        "description": "Environment Variable Test",
+        "config": {
+            "mcpKey": "envtest",
+            "runtime": "npx",
+            "args": ["-y", "mcp-server-test", "--prefix", "${PREFIX}", "--value", "${ENV_VAR}", "--suffix", "${SUFFIX}"]
+        }
+    }]);
+
+    let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
+    *cache = Some(test_registry);
+    // Release the lock on the cache before proceeding
+    drop(cache);
+
+    // Setup test config with only environment variables, no args
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
+
+    let initial_config = json!({
+        "mcpServers": {
+            "envtest": {
+                "env": {
+                    "PREFIX": "prefix_value",
+                    "ENV_VAR": "test_value",
+                    "SUFFIX": "suffix_value"
+                }
+                // No args here - we want to test that they're generated during install
+            }
+        }
+    });
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    )
+    .unwrap();
+    app::set_test_config_path(Some(config_path.clone()));
+
+    // Install app
+    app::install("EnvTest", None).unwrap();
+
+    // Get the config directly to verify args
+    let config = app::get_config().unwrap();
+    let args = &config["mcpServers"]["envtest"]["args"];
+
+    // Verify that environment variables were replaced
+    assert_eq!(args[0], "-y", "First arg should be -y");
+    assert_eq!(args[1], "mcp-server-test", "Second arg should be mcp-server-test");
+    assert_eq!(args[2], "--prefix", "Third arg should be --prefix");
+    assert_eq!(args[3], "prefix_value", "PREFIX should be replaced with prefix_value");
+    assert_eq!(args[4], "--value", "Fifth arg should be --value");
+    assert_eq!(args[5], "test_value", "ENV_VAR should be replaced with test_value");
+    assert_eq!(args[6], "--suffix", "Seventh arg should be --suffix");
+    assert_eq!(args[7], "suffix_value", "SUFFIX should be replaced with suffix_value");
+
+    // Cleanup
+    cleanup_test_registry();
+    environment::set_test_mode(false);
+}
+
+#[test]
+#[serial]
+fn test_complex_env_var_replacements() {
+    // Set up logging for this test
+    let _ = env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .is_test(true)
+        .try_init();
+
+    environment::set_test_mode(true);
+
+    // Setup test registry with complex environment variable patterns in args
+    let test_registry = json!([{
+        "name": "ComplexEnvTest",
+        "description": "Complex Environment Variable Test",
+        "config": {
+            "mcpKey": "complextest",
+            "runtime": "npx",
+            "args": [
+                "-y",
+                "complex-test",
+                // Simple variable
+                "--simple=${SIMPLE}",
+                // Multiple variables in one argument
+                "--combined=${PREFIX}${MIDDLE}${SUFFIX}",
+                // Variable with surrounding text
+                "--embedded=prefix_${EMBEDDED}_suffix",
+                // Numeric variable
+                "--numeric=${NUMBER}",
+                // Boolean variable
+                "--flag=${FLAG}",
+                // Nested path-like variable
+                "--path=${PATH_VAR}/subdir",
+                // Variable that doesn't exist (should remain unchanged)
+                "--missing=${DOES_NOT_EXIST}"
+            ]
+        }
+    }]);
+
+    let mut cache = APP_REGISTRY_CACHE.lock().unwrap();
+    *cache = Some(test_registry);
+    // Release the lock on the cache before proceeding
+    drop(cache);
+
+    // Setup test config with environment variables
+    let test_id = Uuid::new_v4().to_string();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir
+        .path()
+        .join(format!("test_config_{}.json", test_id));
+
+    let initial_config = json!({
+        "mcpServers": {
+            "complextest": {
+                "env": {
+                    "SIMPLE": "simple_value",
+                    "PREFIX": "prefix_",
+                    "MIDDLE": "middle",
+                    "SUFFIX": "_suffix",
+                    "EMBEDDED": "embedded_value",
+                    "NUMBER": 42,
+                    "FLAG": true,
+                    "PATH_VAR": "/tmp/test"
+                }
+            }
+        }
+    });
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&initial_config).unwrap(),
+    )
+    .unwrap();
+    app::set_test_config_path(Some(config_path.clone()));
+
+    // Install app
+    app::install("ComplexEnvTest", None).unwrap();
+
+    // Get the config directly to verify args
+    let config = app::get_config().unwrap();
+    let args = &config["mcpServers"]["complextest"]["args"];
+
+    // Verify that environment variables were replaced correctly
+    assert_eq!(args[0], "-y", "First arg should be -y");
+    assert_eq!(args[1], "complex-test", "Second arg should be complex-test");
+    assert_eq!(args[2], "--simple=simple_value", "Simple variable should be replaced");
+    assert_eq!(args[3], "--combined=prefix_middle_suffix", "Multiple variables should be replaced");
+    assert_eq!(args[4], "--embedded=prefix_embedded_value_suffix", "Embedded variable should be replaced");
+    assert_eq!(args[5], "--numeric=42", "Numeric variable should be replaced");
+    assert_eq!(args[6], "--flag=true", "Boolean variable should be replaced");
+    assert_eq!(args[7], "--path=/tmp/test/subdir", "Path variable should be replaced");
+    assert_eq!(args[8], "--missing=${DOES_NOT_EXIST}", "Non-existent variable should remain unchanged");
+
+    // Cleanup
     cleanup_test_registry();
     environment::set_test_mode(false);
 }

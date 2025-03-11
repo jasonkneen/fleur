@@ -11,6 +11,7 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
+use regex;
 
 lazy_static! {
     static ref CONFIG_CACHE: Mutex<Option<Value>> = Mutex::new(None);
@@ -69,7 +70,7 @@ fn fetch_app_registry() -> Result<Value, String> {
 
     // Fetch the registry from GitHub
     let registry_url =
-        "https://raw.githubusercontent.com/fleuristes/app-registry/refs/heads/main/apps.json";
+        "https://raw.githubusercontent.com/pranav7/app-registry/p7/11.03.25/stripe-mcp/apps.json";
     info!("Fetching app registry from {}", registry_url);
     let response = get(registry_url).map_err(|e| {
         error!("Failed to fetch app registry: {}", e);
@@ -108,6 +109,44 @@ fn ensure_env_setup() -> Result<(), String> {
     // Mark setup as complete
     *setup_complete = true;
     Ok(())
+}
+
+/// Replaces environment variables in a string with their values from the provided env object
+/// Environment variables are in the format ${VAR_NAME}
+fn replace_env_vars(input: &str, env: &serde_json::Value) -> String {
+    let mut result = input.to_string();
+
+    // Find all ${...} patterns
+    let re = regex::Regex::new(r"\$\{([^}]+)\}").unwrap();
+
+    // Collect all matches first to avoid modifying the string while iterating
+    let matches: Vec<(String, String)> = re.captures_iter(&result)
+        .filter_map(|captures| {
+            let full_match = captures.get(0)?.as_str().to_string();
+            let var_name = captures.get(1)?.as_str().to_string();
+            Some((full_match, var_name))
+        })
+        .collect();
+
+    // Process each match
+    for (full_match, var_name) in matches {
+        // Look up the variable in the env object
+        if let Some(value) = env.get(&var_name) {
+            // Convert the value to a string representation
+            let replacement = match value {
+                serde_json::Value::String(s) => s.clone(),
+                serde_json::Value::Number(n) => n.to_string(),
+                serde_json::Value::Bool(b) => b.to_string(),
+                _ => full_match.clone(), // Keep original for other types
+            };
+
+            // Replace this occurrence
+            result = result.replace(&full_match, &replacement);
+        }
+        // If variable not found, leave the original ${VAR_NAME} in place
+    }
+
+    result
 }
 
 pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
@@ -329,15 +368,38 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>) -> Result<St
             .get_mut("mcpServers")
             .and_then(|v| v.as_object_mut())
         {
-            let mut app_config = json!({
-                "command": command,
-                "args": args.clone(),
-            });
+            // Get existing environment variables for this app if any
+            let existing_env = if let Some(server_config) = mcp_servers.get(&mcp_key) {
+                if let Some(env) = server_config.get("env") {
+                    env.clone()
+                } else {
+                    json!({})
+                }
+            } else {
+                json!({})
+            };
 
-            // Add environment variables if provided
-            if let Some(env) = env_vars {
-                app_config["env"] = env;
-            }
+            // Merge with provided env_vars if any
+            let env = if let Some(new_env) = env_vars {
+                let mut merged = existing_env.as_object().unwrap_or(&serde_json::Map::new()).clone();
+                for (k, v) in new_env.as_object().unwrap_or(&serde_json::Map::new()) {
+                    merged.insert(k.clone(), v.clone());
+                }
+                serde_json::Value::Object(merged)
+            } else {
+                existing_env
+            };
+
+            // Process args to replace environment variables
+            let processed_args = args.iter()
+                .map(|arg| replace_env_vars(arg, &env))
+                .collect::<Vec<String>>();
+
+            let app_config = json!({
+                "command": command,
+                "args": processed_args,
+                "env": env
+            });
 
             debug!("Adding config for {}: {:?}", mcp_key, app_config);
             mcp_servers.insert(mcp_key.clone(), app_config);
