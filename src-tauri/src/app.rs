@@ -1,5 +1,6 @@
 use crate::environment::{ensure_environment_sync, ensure_npx_shim, get_uvx_path};
 use crate::file_utils::{ensure_config_file, ensure_mcp_servers};
+use crate::clients::{self, ClientType, ClientPathConfig};
 use dirs;
 use lazy_static::lazy_static;
 use log::{debug, error, info, warn};
@@ -9,87 +10,18 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
-use std::thread::sleep;
-use std::time::Duration;
 use regex;
 
-// List of clients we support
-pub const SUPPORTED_CLIENTS: [&str; 2] = ["Claude", "Cursor"];
-
 lazy_static! {
-    // Map of client name -> config cache
     static ref CONFIG_CACHE: Mutex<std::collections::HashMap<String, Value>> = Mutex::new(std::collections::HashMap::new());
     static ref TEST_CONFIG_PATH: Mutex<Option<PathBuf>> = Mutex::new(None);
     pub static ref APP_REGISTRY_CACHE: Mutex<Option<Value>> = Mutex::new(None);
     static ref ENV_SETUP_COMPLETE: Mutex<bool> = Mutex::new(false);
-    // Map of client name -> path configuration
-    static ref CLIENT_PATH_CONFIGS: Mutex<std::collections::HashMap<String, ClientPathConfig>> = Mutex::new(std::collections::HashMap::new());
-}
-
-// Structure to hold client-specific path configuration
-#[derive(Clone, Debug)]
-pub struct ClientPathConfig {
-    pub base_dir: PathBuf,
-    pub config_filename: String,
 }
 
 // Initialize default path configurations for supported clients
 pub fn init_client_path_configs() {
-    let mut configs = CLIENT_PATH_CONFIGS.lock().unwrap();
-
-    // Only initialize if empty
-    if configs.is_empty() {
-        if let Some(home_dir) = dirs::home_dir() {
-            // Claude configuration
-            configs.insert(
-                "Claude".to_string(),
-                ClientPathConfig {
-                    base_dir: home_dir.join("Library/Application Support/Claude"),
-                    config_filename: "claude_desktop_config.json".to_string(),
-                }
-            );
-
-            // Cursor configuration
-            configs.insert(
-                "Cursor".to_string(),
-                ClientPathConfig {
-                    base_dir: home_dir.join("~/.cursor/"),
-                    config_filename: "mcp.json".to_string(),
-                }
-            );
-        }
-    }
-}
-
-// Get the path configuration for a specific client
-pub fn get_client_path_config(client: &str) -> Result<ClientPathConfig, String> {
-    // Initialize configs if needed
-    init_client_path_configs();
-
-    // Get the client's path configuration
-    let configs = CLIENT_PATH_CONFIGS.lock().unwrap();
-    if let Some(config) = configs.get(client) {
-        Ok(config.clone())
-    } else {
-        Err(format!("No path configuration for client: {}", client))
-    }
-}
-
-// Set a custom path configuration for a client
-pub fn set_client_path_config(client: &str, config: ClientPathConfig) -> Result<(), String> {
-    // Validate client
-    validate_client(client)?;
-
-    // Update the configuration
-    let mut configs = CLIENT_PATH_CONFIGS.lock().unwrap();
-    configs.insert(client.to_string(), config);
-
-    // Clear the config cache for this client
-    let mut cache = CONFIG_CACHE.lock().unwrap();
-    cache.remove(client);
-
-    debug!("Updated path configuration for client: {}", client);
-    Ok(())
+    clients::init_client_path_configs();
 }
 
 pub fn set_test_config_path(path: Option<PathBuf>) {
@@ -104,14 +36,11 @@ pub fn set_test_config_path(path: Option<PathBuf>) {
 }
 
 pub fn get_default_client() -> String {
-    SUPPORTED_CLIENTS[0].to_string() // Claude
+    clients::get_default_client()
 }
 
 pub fn validate_client(client_name: &str) -> Result<(), String> {
-    if !SUPPORTED_CLIENTS.contains(&client_name) {
-        return Err(format!("Unsupported client: {}", client_name));
-    }
-    Ok(())
+    clients::validate_client(client_name)
 }
 
 fn get_config_path(client: &str) -> Result<PathBuf, String> {
@@ -121,7 +50,7 @@ fn get_config_path(client: &str) -> Result<PathBuf, String> {
     );
 
     // Validate client
-    validate_client(client)?;
+    clients::validate_client(client)?;
 
     // Check if we have a test config path set
     let test_path = TEST_CONFIG_PATH.lock().unwrap();
@@ -131,7 +60,7 @@ fn get_config_path(client: &str) -> Result<PathBuf, String> {
     }
 
     // Get the client-specific path configuration
-    let path_config = get_client_path_config(client)?;
+    let path_config = clients::get_client_path_config(client)?;
 
     // Construct the full path
     let config_path = path_config.base_dir.join(&path_config.config_filename);
@@ -313,7 +242,7 @@ pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
 
 pub fn get_config(client_opt: Option<&str>) -> Result<Value, String> {
     // Use the default client if none is provided
-    let client = client_opt.unwrap_or(SUPPORTED_CLIENTS[0]);
+    let client = client_opt.unwrap_or(clients::ClientType::default().as_str());
 
     debug!(
         "Getting config for client {}, test_mode: {}",
@@ -356,7 +285,7 @@ pub fn get_config(client_opt: Option<&str>) -> Result<Value, String> {
 
 pub fn save_config(config: &Value, client_opt: Option<&str>) -> Result<(), String> {
     // Use the default client if none is provided
-    let client = client_opt.unwrap_or(SUPPORTED_CLIENTS[0]);
+    let client = client_opt.unwrap_or(clients::ClientType::default().as_str());
 
     // Validate client
     validate_client(client)?;
@@ -384,32 +313,7 @@ pub fn save_config(config: &Value, client_opt: Option<&str>) -> Result<(), Strin
 
 #[tauri::command]
 pub fn restart_client_app(client_name: Option<&str>) -> Result<String, String> {
-    // Use the default client if none is provided
-    let client = client_name.unwrap_or(SUPPORTED_CLIENTS[0]);
-
-    // Validate client
-    validate_client(client)?;
-
-    info!("Restarting {} app...", client);
-
-    // Kill the client app
-    Command::new("pkill")
-        .arg("-x")
-        .arg(client)
-        .output()
-        .map_err(|e| format!("Failed to kill {} app: {}", client, e))?;
-
-    // Wait a moment to ensure it's fully closed
-    sleep(Duration::from_millis(500));
-
-    // Relaunch the app
-    Command::new("open")
-        .arg("-a")
-        .arg(client)
-        .output()
-        .map_err(|e| format!("Failed to relaunch {} app: {}", client, e))?;
-
-    Ok(format!("{} app restarted successfully", client))
+    clients::restart_client_app(client_name)
 }
 
 // Keep the old function for backward compatibility, but have it call the new function
@@ -524,7 +428,7 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>, client: Opti
                 });
             }
 
-            let client_str = client.unwrap_or(SUPPORTED_CLIENTS[0]);
+            let client_str = client.unwrap_or(clients::ClientType::default().as_str());
             info!("Successfully installed app: {} for client: {}", app_name, client_str);
 
             Ok(format!("Added {} configuration for {}", mcp_key, app_name))
@@ -553,7 +457,7 @@ pub fn uninstall(app_name: &str, client: Option<&str>) -> Result<String, String>
         {
             if mcp_servers.remove(&config.mcp_key).is_some() {
                 save_config(&config_json, client)?;
-                let client_str = client.unwrap_or(SUPPORTED_CLIENTS[0]);
+                let client_str = client.unwrap_or(clients::ClientType::default().as_str());
                 info!("Successfully uninstalled app: {} for client: {}", app_name, client_str);
 
                 Ok(format!(
@@ -626,7 +530,7 @@ pub fn save_app_env(app_name: &str, env_values: serde_json::Value, client: Optio
                         }
 
                         save_config(&config_json, client)?;
-                        let client_str = client.unwrap_or(SUPPORTED_CLIENTS[0]);
+                        let client_str = client.unwrap_or(clients::ClientType::default().as_str());
                         info!("Successfully saved ENV values for app: {} for client: {}", app_name, client_str);
                         return Ok(format!("Saved ENV values for app '{}'", app_name));
                     }
@@ -700,7 +604,7 @@ pub fn get_app_statuses(client: Option<&str>) -> Result<Value, String> {
         }
     }
 
-    let client_str = client.unwrap_or(SUPPORTED_CLIENTS[0]);
+    let client_str = client.unwrap_or(clients::ClientType::default().as_str());
     debug!(
         "Retrieved app statuses for client {}: installed={:?}, configured={:?}",
         client_str, installed_apps, configured_apps
@@ -762,7 +666,7 @@ pub fn install_fleur_mcp(client: Option<&str>) -> Result<String, String> {
         mcp_servers.insert("fleur".to_string(), app_config);
         save_config(&config_json, client)?;
 
-        let client_str = client.unwrap_or(SUPPORTED_CLIENTS[0]);
+        let client_str = client.unwrap_or(clients::ClientType::default().as_str());
         info!("Successfully installed fleur-mcp for client: {}", client_str);
         Ok("Added fleur-mcp configuration".to_string())
     } else {
@@ -784,7 +688,7 @@ pub fn uninstall_fleur_mcp(client: Option<&str>) -> Result<String, String> {
     {
         if mcp_servers.remove("fleur").is_some() {
             save_config(&config_json, client)?;
-            let client_str = client.unwrap_or(SUPPORTED_CLIENTS[0]);
+            let client_str = client.unwrap_or(clients::ClientType::default().as_str());
             info!("Successfully uninstalled fleur-mcp for client: {}", client_str);
             Ok("Removed fleur-mcp configuration".to_string())
         } else {
@@ -828,23 +732,7 @@ pub fn reset_onboarding_completed() -> Result<bool, String> {
 
 #[tauri::command]
 pub fn check_client_installed(client_name: Option<&str>) -> Result<bool, String> {
-    // Use the default client if none is provided
-    let client = client_name.unwrap_or(SUPPORTED_CLIENTS[0]);
-
-    // Validate client
-    validate_client(client)?;
-
-    #[cfg(target_os = "macos")]
-    {
-        let app_path = std::path::PathBuf::from(format!("/Applications/{}.app", client));
-        debug!("Checking for {}.app at: {}", client, app_path.display());
-        return Ok(app_path.exists());
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    {
-        return Ok(false);
-    }
+    clients::check_client_installed(client_name)
 }
 
 // Keep these functions for backward compatibility, but have them call the new function
@@ -860,7 +748,7 @@ pub fn check_cursor_installed() -> Result<bool, String> {
 
 #[tauri::command]
 pub fn get_supported_clients() -> Vec<String> {
-    SUPPORTED_CLIENTS.iter().map(|&s| s.to_string()).collect()
+    ClientType::all_as_str().iter().map(|&s| s.to_string()).collect()
 }
 
 #[tauri::command]
@@ -871,7 +759,7 @@ pub fn get_default_client_command() -> String {
 #[tauri::command]
 pub fn set_client_config_path(client: &str, base_dir: &str, config_filename: &str) -> Result<String, String> {
     // Validate client
-    validate_client(client)?;
+    clients::validate_client(client)?;
 
     // Create path from string
     let base_path = std::path::PathBuf::from(base_dir);
@@ -883,7 +771,7 @@ pub fn set_client_config_path(client: &str, base_dir: &str, config_filename: &st
     };
 
     // Set the configuration
-    set_client_path_config(client, config)?;
+    clients::set_client_path_config(client, config)?;
 
     // Clear the cache for this client
     let mut cache = CONFIG_CACHE.lock().unwrap();
@@ -898,10 +786,10 @@ pub fn set_client_config_path(client: &str, base_dir: &str, config_filename: &st
 #[tauri::command]
 pub fn get_client_config_path(client: &str) -> Result<Value, String> {
     // Validate client
-    validate_client(client)?;
+    clients::validate_client(client)?;
 
     // Get the client's path configuration
-    let config = get_client_path_config(client)?;
+    let config = clients::get_client_path_config(client)?;
 
     // Convert to JSON
     let result = json!({

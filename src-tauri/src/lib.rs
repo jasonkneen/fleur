@@ -1,6 +1,7 @@
 pub mod app;
 pub mod environment;
 pub mod file_utils;
+pub mod clients;
 
 use log::{error, info};
 use simplelog::{ConfigBuilder, LevelFilter, WriteLogger};
@@ -110,7 +111,7 @@ pub fn run() {
     }
 
     // Initialize client path configurations
-    app::init_client_path_configs();
+    clients::init_client_path_configs();
 
     // Preload dependencies in background
     std::thread::spawn(|| {
