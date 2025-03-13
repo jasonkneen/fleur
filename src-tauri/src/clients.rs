@@ -71,7 +71,7 @@ pub fn init_client_path_configs() {
             configs.insert(
                 ClientType::Cursor.as_str().to_string(),
                 ClientPathConfig {
-                    base_dir: home_dir.join("~/.cursor/"),
+                    base_dir: home_dir.join("/.cursor/"),
                     config_filename: "mcp.json".to_string(),
                 }
             );
