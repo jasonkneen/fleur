@@ -1047,7 +1047,7 @@ dependencies = [
 
 [[package]]
 name = "fleur"
-version = "0.2.10"
+version = "0.2.11"
 dependencies = [
  "dirs 5.0.1",
  "env_logger",
