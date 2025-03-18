@@ -90,10 +90,10 @@ export function AppInstallButton({
             onClick: async () => {
               try {
                 await invoke("restart_client_app", { client: currentClient });
-                toast.success("Claude app is restarting...");
+                toast.success(`${currentClient} app is restarting...`);
               } catch (error) {
                 console.error("Failed to restart Claude app:", error);
-                toast.error("Failed to restart Claude app");
+                toast.error(`Failed to restart ${currentClient} app`);
               }
             },
           },
@@ -145,7 +145,7 @@ export function AppInstallButton({
             <Button
               variant="ghost"
               size="sm"
-              className="transition-colors rounded-lg px-3 bg-transparent text-sand/20 dark:text-blue-400 border border-sand-100 border-border hover:bg-transparent dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
+              className="transition-colors rounded-lg px-3 bg-transparent text-sand/20 dark:text-blue-400 border border-sand-100  hover:bg-transparent dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
               onClick={() =>
                 navigate({ to: "/app/$name", params: { name: app.name } })
               }>
@@ -201,8 +201,8 @@ export function AppInstallButton({
                         await invoke("restart_client_app", { client: currentClient });
                         toast.success(`${currentClient} app is restarting...`);
                       } catch (error) {
-                        console.error("Failed to restart Claude app:", error);
-                        toast.error("Failed to restart Claude app");
+                        console.error(`Failed to restart ${currentClient} app:`, error);
+                        toast.error(`Failed to restart ${currentClient} app`);
                       }
                     },
                   },
