@@ -2,6 +2,7 @@ pub mod app;
 pub mod environment;
 pub mod file_utils;
 pub mod clients;
+pub mod os;
 
 use log::{error, info};
 use simplelog::{ConfigBuilder, LevelFilter, WriteLogger};

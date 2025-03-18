@@ -13,7 +13,7 @@ use std::sync::Mutex;
 use regex;
 
 lazy_static! {
-    static ref CONFIG_CACHE: Mutex<std::collections::HashMap<String, Value>> = Mutex::new(std::collections::HashMap::new());
+    static ref CONFIG_CACHE: Mutex<std::collections::HashMap<ClientType, Value>> = Mutex::new(std::collections::HashMap::new());
     static ref TEST_CONFIG_PATH: Mutex<Option<PathBuf>> = Mutex::new(None);
     pub static ref APP_REGISTRY_CACHE: Mutex<Option<Value>> = Mutex::new(None);
     static ref ENV_SETUP_COMPLETE: Mutex<bool> = Mutex::new(false);
@@ -35,18 +35,18 @@ pub fn set_test_config_path(path: Option<PathBuf>) {
     debug!("Test config path set and cache cleared");
 }
 
-pub fn get_default_client() -> String {
+pub fn get_default_client() -> ClientType {
     clients::get_default_client()
 }
 
-pub fn validate_client(client_name: &str) -> Result<(), String> {
-    clients::validate_client(client_name)
+pub fn validate_client(client: &ClientType) -> Result<(), String> {
+    clients::validate_client(client)
 }
 
-fn get_config_path(client: &str) -> Result<PathBuf, String> {
+fn get_config_path(client: &ClientType) -> Result<PathBuf, String> {
     debug!(
         "Getting config path for client {}, test_mode: {}",
-        client, crate::environment::is_test_mode()
+        client.as_str(), crate::environment::is_test_mode()
     );
 
     // Validate client
@@ -65,7 +65,7 @@ fn get_config_path(client: &str) -> Result<PathBuf, String> {
     // Construct the full path
     let config_path = path_config.base_dir.join(&path_config.config_filename);
 
-    debug!("Using config path for {}: {}", client, config_path.display());
+    debug!("Using config path for {}: {}", client.as_str(), config_path.display());
     Ok(config_path)
 }
 
@@ -240,13 +240,14 @@ pub fn get_app_configs() -> Result<Vec<(String, AppConfig)>, String> {
     Ok(configs)
 }
 
-pub fn get_config(client_opt: Option<&str>) -> Result<Value, String> {
+pub fn get_config(client_opt: Option<&ClientType>) -> Result<Value, String> {
     // Use the default client if none is provided
-    let client = client_opt.unwrap_or(clients::ClientType::default().as_str());
+    let default = clients::ClientType::default();
+    let client = client_opt.unwrap_or(&default);
 
     debug!(
         "Getting config for client {}, test_mode: {}",
-        client, crate::environment::is_test_mode()
+        client.as_str(), crate::environment::is_test_mode()
     );
 
     // Validate client
@@ -254,7 +255,7 @@ pub fn get_config(client_opt: Option<&str>) -> Result<Value, String> {
 
     let mut cache = CONFIG_CACHE.lock().unwrap();
     if let Some(config) = cache.get(client) {
-        debug!("Using cached config for client {}", client);
+        debug!("Using cached config for client {}", client.as_str());
         return Ok(config.clone());
     }
 
@@ -278,20 +279,20 @@ pub fn get_config(client_opt: Option<&str>) -> Result<Value, String> {
 
     ensure_mcp_servers(&mut config_json)?;
 
-    cache.insert(client.to_string(), config_json.clone());
-    debug!("Config for client {} loaded and cached successfully", client);
+    cache.insert(client.clone(), config_json.clone());
+    debug!("Config for client {} loaded and cached successfully", client.as_str());
     Ok(config_json)
 }
 
-pub fn save_config(config: &Value, client_opt: Option<&str>) -> Result<(), String> {
+pub fn save_config(config: &Value, client_opt: Option<&ClientType>) -> Result<(), String> {
     // Use the default client if none is provided
-    let client = client_opt.unwrap_or(clients::ClientType::default().as_str());
+    let default = clients::ClientType::default();
+    let client = client_opt.unwrap_or(&default);
 
-    // Validate client
     validate_client(client)?;
 
     let config_path = get_config_path(client)?;
-    debug!("Saving config for client {} to {}", client, config_path.display());
+    debug!("Saving config for client {} to {}", client.as_str(), config_path.display());
 
     let updated_config = serde_json::to_string_pretty(config).map_err(|e| {
         error!("Failed to serialize config: {}", e);
@@ -305,21 +306,38 @@ pub fn save_config(config: &Value, client_opt: Option<&str>) -> Result<(), Strin
 
     // Update cache
     let mut cache = CONFIG_CACHE.lock().unwrap();
-    cache.insert(client.to_string(), config.clone());
-    info!("Config for client {} saved successfully", client);
+    cache.insert(client.clone(), config.clone());
+    info!("Config for client {} saved successfully", client.as_str());
 
     Ok(())
 }
 
 #[tauri::command]
-pub fn restart_client_app(client_name: Option<&str>) -> Result<String, String> {
-    clients::restart_client_app(client_name)
+pub fn restart_client_app(client: Option<String>) -> Result<String, String> {
+    // Convert string to ClientType if provided
+    let client_type = if let Some(c) = client {
+        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
+    } else {
+        None
+    };
+
+    clients::restart_client_app(client_type.as_ref())
 }
 
-// Keep the old function for backward compatibility, but have it call the new function
+// Keep these functions for backward compatibility, but have them call the new function
+#[tauri::command]
+pub fn check_claude_installed() -> Result<bool, String> {
+    check_client_installed(Some("Claude".to_string()))
+}
+
+#[tauri::command]
+pub fn check_cursor_installed() -> Result<bool, String> {
+    check_client_installed(Some("Cursor".to_string()))
+}
+
 #[tauri::command]
 pub fn restart_claude_app() -> Result<String, String> {
-    restart_client_app(Some("Claude"))
+    restart_client_app(Some("Claude".to_string()))
 }
 
 #[tauri::command]
@@ -338,7 +356,10 @@ pub fn preload_dependencies() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn install(app_name: &str, env_vars: Option<serde_json::Value>, client: Option<&str>) -> Result<String, String> {
+pub fn install(app_name: &str, env_vars: Option<serde_json::Value>, client_opt: Option<ClientType>) -> Result<String, String> {
+    let default = clients::ClientType::default();
+    let client = client_opt.as_ref().unwrap_or(&default);
+
     info!("Installing app: {} for client: {:?}", app_name, client);
     debug!(
         "Install called in test mode: {}",
@@ -350,7 +371,7 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>, client: Opti
 
     let configs = get_app_configs()?;
     if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
-        let mut config_json = get_config(client)?;
+        let mut config_json = get_config(Some(client))?;
         let mcp_key = config.mcp_key.clone();
         let command = config.command.clone();
         let args = config.args.clone();
@@ -415,7 +436,7 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>, client: Opti
 
             debug!("Adding config for {}: {:?}", mcp_key, app_config);
             mcp_servers.insert(mcp_key.clone(), app_config);
-            save_config(&config_json, client)?;
+            save_config(&config_json, Some(client))?;
 
             // Only attempt to pre-cache npm packages if not in test mode
             if !crate::environment::is_test_mode() {
@@ -428,9 +449,7 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>, client: Opti
                 });
             }
 
-            let client_str = client.unwrap_or(clients::ClientType::default().as_str());
-            info!("Successfully installed app: {} for client: {}", app_name, client_str);
-
+            info!("Successfully installed app: {} for client: {}", app_name, client.as_str());
             Ok(format!("Added {} configuration for {}", mcp_key, app_name))
         } else {
             let err = "Failed to find mcpServers in config".to_string();
@@ -445,21 +464,29 @@ pub fn install(app_name: &str, env_vars: Option<serde_json::Value>, client: Opti
 }
 
 #[tauri::command]
-pub fn uninstall(app_name: &str, client: Option<&str>) -> Result<String, String> {
+pub fn uninstall(app_name: &str, client: Option<String>) -> Result<String, String> {
     info!("Uninstalling app: {} for client: {:?}", app_name, client);
 
+    // Convert string to ClientType if provided
+    let client_type = if let Some(c) = client {
+        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
+    } else {
+        None
+    };
+
+    let default = clients::ClientType::default();
+    let client = client_type.as_ref().unwrap_or(&default);
+
     if let Some((_, config)) = get_app_configs()?.iter().find(|(name, _)| name == app_name) {
-        let mut config_json = get_config(client)?;
+        let mut config_json = get_config(Some(client))?;
 
         if let Some(mcp_servers) = config_json
             .get_mut("mcpServers")
             .and_then(|v| v.as_object_mut())
         {
             if mcp_servers.remove(&config.mcp_key).is_some() {
-                save_config(&config_json, client)?;
-                let client_str = client.unwrap_or(clients::ClientType::default().as_str());
-                info!("Successfully uninstalled app: {} for client: {}", app_name, client_str);
-
+                save_config(&config_json, Some(client))?;
+                info!("Successfully uninstalled app: {} for client: {}", app_name, client.as_str());
                 Ok(format!(
                     "Removed {} configuration for {}",
                     config.mcp_key, app_name
@@ -480,10 +507,18 @@ pub fn uninstall(app_name: &str, client: Option<&str>) -> Result<String, String>
 }
 
 #[tauri::command]
-pub fn is_installed(app_name: &str, client: Option<&str>) -> Result<bool, String> {
+pub fn is_installed(app_name: &str, client: Option<String>) -> Result<bool, String> {
     debug!("Checking if app is installed: {} for client: {:?}", app_name, client);
+
+    // Convert string to ClientType if provided
+    let client_type = if let Some(c) = client {
+        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
+    } else {
+        None
+    };
+
     if let Some((_, config)) = get_app_configs()?.iter().find(|(name, _)| name == app_name) {
-        let config_json = get_config(client)?;
+        let config_json = get_config(client_type.as_ref())?;
 
         if let Some(mcp_servers) = config_json.get("mcpServers") {
             if let Some(servers) = mcp_servers.as_object() {
@@ -498,15 +533,22 @@ pub fn is_installed(app_name: &str, client: Option<&str>) -> Result<bool, String
 }
 
 #[tauri::command]
-pub fn save_app_env(app_name: &str, env_values: serde_json::Value, client: Option<&str>) -> Result<String, String> {
+pub fn save_app_env(app_name: &str, env_values: serde_json::Value, client: Option<String>) -> Result<String, String> {
     info!("Saving ENV values for app: {} for client: {:?}", app_name, client);
+
+    // Convert string to ClientType if provided
+    let client_type = if let Some(c) = client {
+        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
+    } else {
+        None
+    };
 
     // Ensure environment is set up first
     ensure_env_setup()?;
 
     let configs = get_app_configs()?;
     if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
-        let mut config_json = get_config(client)?;
+        let mut config_json = get_config(client_type.as_ref())?;
         let mcp_key = config.mcp_key.clone();
 
         if let Some(mcp_servers) = config_json
@@ -529,9 +571,10 @@ pub fn save_app_env(app_name: &str, env_values: serde_json::Value, client: Optio
                             env.insert(key.clone(), value.clone());
                         }
 
-                        save_config(&config_json, client)?;
-                        let client_str = client.unwrap_or(clients::ClientType::default().as_str());
-                        info!("Successfully saved ENV values for app: {} for client: {}", app_name, client_str);
+                        save_config(&config_json, client_type.as_ref())?;
+                        let default = clients::ClientType::default();
+                        let client_str = client_type.as_ref().unwrap_or(&default);
+                        info!("Successfully saved ENV values for app: {} for client: {}", app_name, client_str.as_str());
                         return Ok(format!("Saved ENV values for app '{}'", app_name));
                     }
                     return Err("Invalid env_values format".to_string());
@@ -547,12 +590,19 @@ pub fn save_app_env(app_name: &str, env_values: serde_json::Value, client: Optio
 }
 
 #[tauri::command]
-pub fn get_app_env(app_name: &str, client: Option<&str>) -> Result<Value, String> {
+pub fn get_app_env(app_name: &str, client: Option<String>) -> Result<Value, String> {
     debug!("Getting ENV values for app: {} for client: {:?}", app_name, client);
+
+    // Convert string to ClientType if provided
+    let client_type = if let Some(c) = client {
+        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
+    } else {
+        None
+    };
 
     let configs = get_app_configs()?;
     if let Some((_, config)) = configs.iter().find(|(name, _)| name == app_name) {
-        let config_json = get_config(client)?;
+        let config_json = get_config(client_type.as_ref())?;
         let mcp_key = config.mcp_key.clone();
 
         if let Some(mcp_servers) = config_json.get("mcpServers").and_then(|v| v.as_object()) {
@@ -572,16 +622,23 @@ pub fn get_app_env(app_name: &str, client: Option<&str>) -> Result<Value, String
 }
 
 #[tauri::command]
-pub fn get_app_statuses(client: Option<&str>) -> Result<Value, String> {
+pub fn get_app_statuses(client: Option<String>) -> Result<Value, String> {
     debug!(
         "Getting app statuses for client: {:?}, test_mode: {}",
         client, crate::environment::is_test_mode()
     );
 
+    // Convert string to ClientType if provided
+    let client_type = if let Some(c) = client {
+        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
+    } else {
+        None
+    };
+
     // Ensure environment is set up before getting statuses
     ensure_env_setup()?;
 
-    let config_json = get_config(client)?;
+    let config_json = get_config(client_type.as_ref())?;
     let mut installed_apps = json!({});
     let mut configured_apps = json!({});
 
@@ -604,7 +661,7 @@ pub fn get_app_statuses(client: Option<&str>) -> Result<Value, String> {
         }
     }
 
-    let client_str = client.unwrap_or(clients::ClientType::default().as_str());
+    let client_str = client_type.as_ref().map(|c| c.as_str()).unwrap_or(clients::ClientType::default().as_str());
     debug!(
         "Retrieved app statuses for client {}: installed={:?}, configured={:?}",
         client_str, installed_apps, configured_apps
@@ -647,10 +704,17 @@ pub fn refresh_app_registry() -> Result<Value, String> {
 }
 
 #[tauri::command]
-pub fn install_fleur_mcp(client: Option<&str>) -> Result<String, String> {
+pub fn install_fleur_mcp(client: Option<String>) -> Result<String, String> {
     info!("Installing fleur-mcp for client: {:?}...", client);
 
-    let mut config_json = get_config(client)?;
+    // Convert string to ClientType if provided
+    let client_type = if let Some(c) = client {
+        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
+    } else {
+        None
+    };
+
+    let mut config_json = get_config(client_type.as_ref())?;
     let uvx_path = get_uvx_path()?;
 
     if let Some(mcp_servers) = config_json
@@ -664,9 +728,9 @@ pub fn install_fleur_mcp(client: Option<&str>) -> Result<String, String> {
 
         debug!("Adding config for fleur: {:?}", app_config);
         mcp_servers.insert("fleur".to_string(), app_config);
-        save_config(&config_json, client)?;
+        save_config(&config_json, client_type.as_ref())?;
 
-        let client_str = client.unwrap_or(clients::ClientType::default().as_str());
+        let client_str = client_type.as_ref().map(|c| c.as_str()).unwrap_or(clients::ClientType::default().as_str());
         info!("Successfully installed fleur-mcp for client: {}", client_str);
         Ok("Added fleur-mcp configuration".to_string())
     } else {
@@ -677,18 +741,25 @@ pub fn install_fleur_mcp(client: Option<&str>) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn uninstall_fleur_mcp(client: Option<&str>) -> Result<String, String> {
+pub fn uninstall_fleur_mcp(client: Option<String>) -> Result<String, String> {
     info!("Uninstalling fleur-mcp for client: {:?}...", client);
 
-    let mut config_json = get_config(client)?;
+    // Convert string to ClientType if provided
+    let client_type = if let Some(c) = client {
+        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
+    } else {
+        None
+    };
+
+    let mut config_json = get_config(client_type.as_ref())?;
 
     if let Some(mcp_servers) = config_json
         .get_mut("mcpServers")
         .and_then(|v| v.as_object_mut())
     {
         if mcp_servers.remove("fleur").is_some() {
-            save_config(&config_json, client)?;
-            let client_str = client.unwrap_or(clients::ClientType::default().as_str());
+            save_config(&config_json, client_type.as_ref())?;
+            let client_str = client_type.as_ref().map(|c| c.as_str()).unwrap_or(clients::ClientType::default().as_str());
             info!("Successfully uninstalled fleur-mcp for client: {}", client_str);
             Ok("Removed fleur-mcp configuration".to_string())
         } else {
@@ -731,19 +802,15 @@ pub fn reset_onboarding_completed() -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn check_client_installed(client_name: Option<&str>) -> Result<bool, String> {
-    clients::check_client_installed(client_name)
-}
+pub fn check_client_installed(client_name: Option<String>) -> Result<bool, String> {
+    // Convert string to ClientType if provided
+    let client_type = if let Some(c) = client_name {
+        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
+    } else {
+        None
+    };
 
-// Keep these functions for backward compatibility, but have them call the new function
-#[tauri::command]
-pub fn check_claude_installed() -> Result<bool, String> {
-    check_client_installed(Some("Claude"))
-}
-
-#[tauri::command]
-pub fn check_cursor_installed() -> Result<bool, String> {
-    check_client_installed(Some("Cursor"))
+    clients::check_client_installed(client_type.as_ref())
 }
 
 #[tauri::command]
@@ -753,13 +820,16 @@ pub fn get_supported_clients() -> Vec<String> {
 
 #[tauri::command]
 pub fn get_default_client_command() -> String {
-    get_default_client()
+    get_default_client().as_str().to_string()
 }
 
 #[tauri::command]
-pub fn set_client_config_path(client: &str, base_dir: &str, config_filename: &str) -> Result<String, String> {
+pub fn set_client_config_path(client: String, base_dir: &str, config_filename: &str) -> Result<String, String> {
+    // Convert string to ClientType
+    let client_type = ClientType::from_str(&client).ok_or_else(|| format!("Invalid client: {}", client))?;
+
     // Validate client
-    clients::validate_client(client)?;
+    clients::validate_client(&client_type)?;
 
     // Create path from string
     let base_path = std::path::PathBuf::from(base_dir);
@@ -768,28 +838,32 @@ pub fn set_client_config_path(client: &str, base_dir: &str, config_filename: &st
     let config = ClientPathConfig {
         base_dir: base_path,
         config_filename: config_filename.to_string(),
+        os: crate::os::OSType::default(),
     };
 
     // Set the configuration
-    clients::set_client_path_config(client, config)?;
+    clients::set_client_path_config(&client_type, config)?;
 
     // Clear the cache for this client
     let mut cache = CONFIG_CACHE.lock().unwrap();
-    cache.remove(client);
+    cache.remove(&client_type);
 
     info!("Updated path configuration for client {}: base_dir={}, config_filename={}",
-          client, base_dir, config_filename);
+          client_type.as_str(), base_dir, config_filename);
 
-    Ok(format!("Successfully updated path configuration for {}", client))
+    Ok(format!("Successfully updated path configuration for {}", client_type.as_str()))
 }
 
 #[tauri::command]
-pub fn get_client_config_path(client: &str) -> Result<Value, String> {
+pub fn get_client_config_path(client: String) -> Result<Value, String> {
+    // Convert string to ClientType
+    let client_type = ClientType::from_str(&client).ok_or_else(|| format!("Invalid client: {}", client))?;
+
     // Validate client
-    clients::validate_client(client)?;
+    clients::validate_client(&client_type)?;
 
     // Get the client's path configuration
-    let config = clients::get_client_path_config(client)?;
+    let config = clients::get_client_path_config(&client_type)?;
 
     // Convert to JSON
     let result = json!({
