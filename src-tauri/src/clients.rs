@@ -6,6 +6,13 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum OSType {
+    MacOS,
+    Linux,
+    Windows,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ClientType {
     Claude,
     Cursor,
@@ -44,6 +51,7 @@ impl ClientType {
 pub struct ClientPathConfig {
     pub base_dir: PathBuf,
     pub config_filename: String,
+    pub os: OSType,
 }
 
 lazy_static! {
@@ -64,6 +72,7 @@ pub fn init_client_path_configs() {
                 ClientPathConfig {
                     base_dir: home_dir.join("Library/Application Support/Claude"),
                     config_filename: "claude_desktop_config.json".to_string(),
+                    os: OSType::MacOS,
                 }
             );
 
@@ -73,6 +82,7 @@ pub fn init_client_path_configs() {
                 ClientPathConfig {
                     base_dir: home_dir.join("/.cursor/"),
                     config_filename: "mcp.json".to_string(),
+                    os: OSType::MacOS,
                 }
             );
         }
