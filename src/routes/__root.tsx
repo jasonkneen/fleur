@@ -25,7 +25,7 @@ export const Route = createRootRoute({
           <div className="bg-sand-100 shadow-lg border border-border h-screen p-2 pt-7">
             <div className="bg-background h-full rounded-lg">
               <header className="sticky top-0 border-b border-border z-10">
-                <div className="container mx-auto px-4 py-2">
+                <div className="container mx-auto px-4 py-1">
                   <div className="flex items-center justify-between">
                     <ClientSelector
                       currentClient={currentClient}
@@ -42,7 +42,7 @@ export const Route = createRootRoute({
                 </div>
               </header>
 
-              <main className="container mx-auto px-4 py-4 h-[515px] overflow-y-auto">
+              <main className="container mx-auto px-4 py-4 h-[505px] overflow-y-auto">
                 <div className="view-transition-wrapper">
                   <Outlet />
                 </div>
