@@ -112,10 +112,7 @@ pub fn get_default_client() -> ClientType {
     ClientType::default()
 }
 
-pub fn check_client_installed(client: Option<&ClientType>) -> Result<bool, String> {
-    let default = ClientType::default();
-    let client = client.unwrap_or(&default);
-
+pub fn check_client_installed(client: &ClientType) -> Result<bool, String> {
     validate_client(client)?;
 
     #[cfg(target_os = "macos")]

@@ -726,15 +726,11 @@ pub fn reset_onboarding_completed() -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn check_client_installed(client_name: Option<String>) -> Result<bool, String> {
-    // Convert string to ClientType if provided
-    let client_type = if let Some(c) = client_name {
-        Some(ClientType::from_str(&c).ok_or_else(|| format!("Invalid client: {}", c))?)
-    } else {
-        None
-    };
+pub fn check_client_installed(client: &str) -> Result<bool, String> {
+    debug!("Checking if client is installed: {}", client);
+    let client_type = ClientType::from_str(&client).ok_or_else(|| format!("Invalid client: {}", client))?;
 
-    clients::check_client_installed(client_type.as_ref())
+    clients::check_client_installed(&client_type)
 }
 
 #[tauri::command]

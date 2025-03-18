@@ -5,11 +5,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import { loadAppStatuses } from "@/store/app";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { loadApps } from "@/store/app";
+import { invoke } from "@tauri-apps/api/core";
 
 export function ClientSelector({
   currentClient,
@@ -18,6 +25,8 @@ export function ClientSelector({
   currentClient: ClientType;
   onClientChange: (client: ClientType) => void;
 }) {
+  const [clientInstallStatus, setClientInstallStatus] = useState<Record<ClientType, boolean>>({} as Record<ClientType, boolean>);
+
   useEffect(() => {
     const refreshAppState = async () => {
       try {
@@ -31,6 +40,19 @@ export function ClientSelector({
     refreshAppState();
   }, [currentClient]);
 
+  useEffect(() => {
+    const checkAllClientsInstallation = async () => {
+      const statuses: Record<ClientType, boolean> = {} as Record<ClientType, boolean>;
+      for (const client of Object.values(ClientType)) {
+        const result = await invoke("check_client_installed", { client: client.toString() });
+        statuses[client] = result as boolean;
+      }
+      setClientInstallStatus(statuses);
+    };
+
+    checkAllClientsInstallation();
+  }, [currentClient]);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -42,17 +64,30 @@ export function ClientSelector({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {Object.values(ClientType).map((client) => (
-          <DropdownMenuItem
-            key={client}
-            onClick={() => {
-              onClientChange(client);
-            }}
-          >
-            <div className="flex items-center gap-2 text-xs">
-              <img src={clientIconMap[client]} alt={ClientTypeLabels[client]} className="w-4 h-4" />
-              {ClientTypeLabels[client]}
-            </div>
-          </DropdownMenuItem>
+          <TooltipProvider key={client}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      onClientChange(client);
+                    }}
+                    disabled={!clientInstallStatus[client]}
+                  >
+                    <div className="flex items-center gap-2 text-xs">
+                      <img src={clientIconMap[client]} alt={ClientTypeLabels[client]} className="w-4 h-4" />
+                      {ClientTypeLabels[client]}
+                    </div>
+                  </DropdownMenuItem>
+                </div>
+              </TooltipTrigger>
+              {!clientInstallStatus[client] && (
+                <TooltipContent side="right" align="start" className="ml-1 max-w-[200px]">
+                  <p>{ClientTypeLabels[client]} is not installed</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
