@@ -4,6 +4,7 @@ use common::setup_test_config;
 use fleur_lib::{
     app::{self, APP_REGISTRY_CACHE},
     environment,
+    clients::ClientType,
 };
 use serde_json::json;
 
@@ -49,18 +50,18 @@ fn test_full_app_lifecycle() {
     }
 
     // Test installation
-    let install_result = app::install("Browser", None, Some("Cursor"));
+    let install_result = app::install("Browser", None, Some(ClientType::Cursor));
     assert!(
         install_result.is_ok(),
         "Install failed: {:?}",
         install_result
     );
-    assert!(app::is_installed("Browser", Some("Cursor")).unwrap());
+    assert!(app::is_installed("Browser", Some(ClientType::Cursor.as_str().to_string())).unwrap());
 
     // Test uninstallation
-    let uninstall_result = app::uninstall("Browser", Some("Cursor"));
+    let uninstall_result = app::uninstall("Browser", Some(ClientType::Cursor.as_str().to_string()));
     assert!(uninstall_result.is_ok());
-    assert!(!app::is_installed("Browser", Some("Cursor")).unwrap());
+    assert!(!app::is_installed("Browser", Some(ClientType::Cursor.as_str().to_string())).unwrap());
 
     // Cleanup
     app::set_test_config_path(None);
