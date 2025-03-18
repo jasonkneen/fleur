@@ -1,4 +1,4 @@
-import { ClientType, ClientTypeLabels } from "@/types/clients";
+import { clientIconMap, ClientType, ClientTypeLabels } from "@/types/clients";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +18,13 @@ export function ClientSelector({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-[150px] justify-between">
+        <Button variant="outline" className="justify-between bg-gradient-to-b from-white to-sand-100 text-xs h-8 px-2">
+          <img src={clientIconMap[currentClient]} alt={ClientTypeLabels[currentClient]} className="w-4 h-4" />
           {ClientTypeLabels[currentClient]}
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="start">
         {Object.values(ClientType).map((client) => (
           <DropdownMenuItem
             key={client}
@@ -31,7 +32,10 @@ export function ClientSelector({
               onClientChange(client);
             }}
           >
-            {ClientTypeLabels[client]}
+            <div className="flex items-center gap-2 text-xs">
+              <img src={clientIconMap[client]} alt={ClientTypeLabels[client]} className="w-4 h-4" />
+              {ClientTypeLabels[client]}
+            </div>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

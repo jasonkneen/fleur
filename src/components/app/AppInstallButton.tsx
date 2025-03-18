@@ -59,7 +59,6 @@ export function AppInstallButton({
         console.log(result);
       } else {
         if (hasConfig(app)) {
-          // Show configuration dialog first instead of installing immediately
           setShowConfigDialog(true);
           return;
         }
@@ -145,7 +144,7 @@ export function AppInstallButton({
             <Button
               variant="ghost"
               size="sm"
-              className="transition-colors rounded-lg px-3 bg-transparent text-sand/20 dark:text-blue-400 border border-sand-100  hover:bg-transparent dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
+              className="transition-colors rounded-lg px-3 bg-transparent text-sand/20 dark:text-blue-400 border border-sand-100 hover:bg-transparent dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
               onClick={() =>
                 navigate({ to: "/app/$name", params: { name: app.name } })
               }>

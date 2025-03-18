@@ -24,7 +24,6 @@ function Index() {
     }
   }, [theme]);
 
-  // Initialize environment only once
   useEffect(() => {
     let mounted = true;
 
@@ -34,7 +33,6 @@ function Index() {
       try {
         await invoke("ensure_environment");
 
-        // Sequential loading to prevent race conditions
         if (mounted) {
           await loadAppStatuses(appStore.state.currentClient);
           if (mounted) {
@@ -57,7 +55,7 @@ function Index() {
     return () => {
       mounted = false;
     };
-  }, []); // Empty dependency array since we only want this to run once
+  }, []);
 
   return <Home />;
 }

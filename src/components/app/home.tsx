@@ -4,8 +4,7 @@ import { useStore } from '@tanstack/react-store';
 import { useApps } from '@/appRegistry';
 import { AppListItem } from '@/components/app/AppListItem';
 import { Loader } from '@/components/ui/loader';
-import { ClientSelector } from './ClientSelector';
-import { appStore, loadAppStatuses, loadApps, updateAppInstallation, updateCurrentClient } from '@/store/app';
+import { appStore, loadAppStatuses, loadApps, updateAppInstallation } from '@/store/app';
 
 export function Home() {
   const appStatuses = useStore(appStore, (state) => state.appStatuses);
@@ -61,10 +60,6 @@ export function Home() {
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Apps</h2>
-        <ClientSelector
-          currentClient={currentClient}
-          onClientChange={(client) => updateCurrentClient(client)}
-        />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-row-8 gap-x-5">
         {apps.map((app) => (
