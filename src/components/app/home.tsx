@@ -1,33 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useStore } from '@tanstack/react-store';
 import { useApps } from '@/appRegistry';
 import { AppListItem } from '@/components/app/AppListItem';
 import { Loader } from '@/components/ui/loader';
-import { appStore, loadAppStatuses, loadApps, updateAppInstallation } from '@/store/app';
+import { appStore, updateAppInstallation } from '@/store/app';
 
 export function Home() {
   const appStatuses = useStore(appStore, (state) => state.appStatuses);
   const isLoadingStatuses = useStore(appStore, (state) => state.isLoadingStatuses);
-  const currentClient = useStore(appStore, (state) => state.currentClient);
   const { apps, isLoading: isLoadingApps } = useApps();
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  useEffect(() => {
-    const refreshAppState = async () => {
-      try {
-        setIsRefreshing(true);
-        await loadAppStatuses(currentClient);
-        await loadApps();
-      } catch (error) {
-        console.error('Failed to refresh app state:', error);
-      } finally {
-        setIsRefreshing(false);
-      }
-    };
-
-    refreshAppState();
-  }, [currentClient]);
 
   useEffect(() => {
     if (!appStatuses) return;
@@ -48,7 +30,7 @@ export function Home() {
     updateAppInstallation(appName, isInstalled);
   };
 
-  if (isLoadingStatuses || isLoadingApps || !appStatuses || isRefreshing) {
+  if (isLoadingStatuses || isLoadingApps || !appStatuses) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader className="text-gray-800 dark:text-gray-200" />

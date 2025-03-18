@@ -7,6 +7,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { loadAppStatuses } from "@/store/app";
+import { useEffect } from "react";
+import { loadApps } from "@/store/app";
 
 export function ClientSelector({
   currentClient,
@@ -15,10 +18,23 @@ export function ClientSelector({
   currentClient: ClientType;
   onClientChange: (client: ClientType) => void;
 }) {
+  useEffect(() => {
+    const refreshAppState = async () => {
+      try {
+        await loadAppStatuses(currentClient);
+        await loadApps();
+      } catch (error) {
+        console.error('Failed to refresh app state:', error);
+      }
+    };
+
+    refreshAppState();
+  }, [currentClient]);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="justify-between bg-gradient-to-b from-white to-sand-100 text-xs h-8 px-2">
+        <Button variant="outline" className="justify-between text-xs h-8 px-2">
           <img src={clientIconMap[currentClient]} alt={ClientTypeLabels[currentClient]} className="w-4 h-4" />
           {ClientTypeLabels[currentClient]}
           <ChevronDown className="h-4 w-4 opacity-50" />
