@@ -189,6 +189,7 @@ export function AppInstallButton({
 
                 const newIsInstalled = await invoke<boolean>("is_installed", {
                   appName: app.name,
+                  client: currentClient,
                 });
                 onInstallationChange(newIsInstalled);
 

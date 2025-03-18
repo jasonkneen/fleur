@@ -85,7 +85,7 @@ fn test_install_and_uninstall() {
     app::set_test_config_path(Some(config_path.clone()));
 
     // Test installation
-    let install_result = app::install("Browser", None, Some(ClientType::Claude));
+    let install_result = app::install("Browser", None, ClientType::Claude.as_str());
     assert!(
         install_result.is_ok(),
         "Install failed: {:?}",
@@ -93,19 +93,18 @@ fn test_install_and_uninstall() {
     );
 
     // Verify installation
-    let is_installed = app::is_installed("Browser", Some(ClientType::Claude.as_str().to_string())).unwrap();
+    let is_installed = app::is_installed("Browser", ClientType::Claude.as_str()).unwrap();
     assert!(is_installed, "Browser should be installed");
 
     // Test uninstallation
-    let uninstall_result = app::uninstall("Browser", Some(ClientType::Claude.as_str().to_string()));
+    let uninstall_result = app::uninstall("Browser", ClientType::Claude.as_str());
     assert!(
         uninstall_result.is_ok(),
         "Uninstall failed: {:?}",
         uninstall_result
     );
-
     // Verify uninstallation
-    let is_installed = app::is_installed("Browser", Some(ClientType::Claude.as_str().to_string())).unwrap();
+    let is_installed = app::is_installed("Browser", ClientType::Claude.as_str()).unwrap();
     assert!(!is_installed, "Browser should not be installed");
 
     // Cleanup
@@ -138,14 +137,14 @@ fn test_app_env_operations() {
     app::set_test_config_path(Some(config_path.clone()));
 
     // Install app first
-    app::install("Browser", None, Some(ClientType::Claude)).unwrap();
+    app::install("Browser", None, ClientType::Claude.as_str()).unwrap();
 
     // Test saving env values
     let env_values = json!({
         "TEST_KEY": "test_value",
         "ANOTHER_KEY": "another_value"
     });
-    let save_result = app::save_app_env("Browser", env_values.clone(), Some(ClientType::Claude.as_str().to_string()));
+    let save_result = app::save_app_env("Browser", env_values.clone(), ClientType::Claude.as_str());
     assert!(
         save_result.is_ok(),
         "Failed to save env values: {:?}",
@@ -153,7 +152,7 @@ fn test_app_env_operations() {
     );
 
     // Test getting env values
-    let get_result = app::get_app_env("Browser", Some(ClientType::Claude.as_str().to_string())).unwrap();
+    let get_result = app::get_app_env("Browser", ClientType::Claude.as_str()).unwrap();
     assert_eq!(
         get_result, env_values,
         "Retrieved env values don't match saved values"
@@ -189,16 +188,16 @@ fn test_app_statuses() {
     app::set_test_config_path(Some(config_path.clone()));
 
     // Get initial statuses
-    let initial_statuses = app::get_app_statuses(Some(ClientType::Claude.as_str().to_string())).unwrap();
+    let initial_statuses = app::get_app_statuses(ClientType::Claude.as_str()).unwrap();
     assert!(initial_statuses["installed"].is_object());
     assert!(initial_statuses["configured"].is_object());
 
     // Install an app
-    app::install("Browser", None, Some(ClientType::Claude)).unwrap();
+    app::install("Browser", None, ClientType::Claude.as_str()).unwrap();
     thread::sleep(Duration::from_millis(100));
 
     // Check updated statuses
-    let updated_statuses = app::get_app_statuses(Some(ClientType::Claude.as_str().to_string())).unwrap();
+    let updated_statuses = app::get_app_statuses(ClientType::Claude.as_str()).unwrap();
     assert!(
         updated_statuses["installed"]["Browser"].as_bool().unwrap(),
         "Browser should be marked as installed"
@@ -273,7 +272,7 @@ fn test_install_with_env_vars() {
         "TEST_ENV": "test_value",
         "DEBUG": "true"
     });
-    let install_result = app::install("Browser", Some(env_vars.clone()), Some(ClientType::Claude));
+    let install_result = app::install("Browser", Some(env_vars.clone()), ClientType::Claude.as_str());
     assert!(
         install_result.is_ok(),
         "Install with env vars failed: {:?}",
@@ -281,7 +280,7 @@ fn test_install_with_env_vars() {
     );
 
     // Verify env vars were saved
-    let saved_env = app::get_app_env("Browser", Some(ClientType::Claude.as_str().to_string())).unwrap();
+    let saved_env = app::get_app_env("Browser", ClientType::Claude.as_str()).unwrap();
     assert_eq!(
         saved_env, env_vars,
         "Saved env vars don't match provided values"
@@ -317,32 +316,32 @@ fn test_multiple_apps() {
     app::set_test_config_path(Some(config_path.clone()));
 
     // Install multiple apps
-    app::install("Browser", None, Some(ClientType::Claude)).unwrap();
-    app::install("Time", None, Some(ClientType::Claude)).unwrap();
+    app::install("Browser", None, ClientType::Claude.as_str()).unwrap();
+    app::install("Time", None, ClientType::Claude.as_str()).unwrap();
 
     // Verify both are installed
     assert!(
-        app::is_installed("Browser", Some(ClientType::Claude.as_str().to_string())).unwrap(),
+        app::is_installed("Browser", ClientType::Claude.as_str()).unwrap(),
         "Browser should be installed"
     );
     assert!(
-        app::is_installed("Time", Some(ClientType::Claude.as_str().to_string())).unwrap(),
+        app::is_installed("Time", ClientType::Claude.as_str()).unwrap(),
         "Time should be installed"
     );
 
     // Check app statuses
-    let statuses = app::get_app_statuses(Some(ClientType::Claude.as_str().to_string())).unwrap();
+    let statuses = app::get_app_statuses(ClientType::Claude.as_str()).unwrap();
     assert!(statuses["installed"]["Browser"].as_bool().unwrap());
     assert!(statuses["installed"]["Time"].as_bool().unwrap());
 
     // Uninstall one app
-    app::uninstall("Browser", Some(ClientType::Claude.as_str().to_string())).unwrap();
+    app::uninstall("Browser", ClientType::Claude.as_str()).unwrap();
     assert!(
-        !app::is_installed("Browser", Some(ClientType::Claude.as_str().to_string())).unwrap(),
+        !app::is_installed("Browser", ClientType::Claude.as_str()).unwrap(),
         "Browser should be uninstalled"
     );
     assert!(
-        app::is_installed("Time", Some(ClientType::Claude.as_str().to_string())).unwrap(),
+        app::is_installed("Time", ClientType::Claude.as_str()).unwrap(),
         "Time should still be installed"
     );
 
@@ -406,10 +405,10 @@ fn test_env_var_replacement_during_install() {
     app::set_test_config_path(Some(config_path.clone()));
 
     // Install app
-    app::install("EnvTest", None, Some(ClientType::Claude)).unwrap();
+    app::install("EnvTest", None, ClientType::Claude.as_str()).unwrap();
 
     // Get the config directly to verify args
-    let config = app::get_config(Some(&ClientType::Claude)).unwrap();
+    let config = app::get_config(&ClientType::Claude).unwrap();
     let args = &config["mcpServers"]["envtest"]["args"];
 
     // Verify that environment variables were replaced
@@ -502,10 +501,10 @@ fn test_complex_env_var_replacements() {
     app::set_test_config_path(Some(config_path.clone()));
 
     // Install app
-    app::install("ComplexEnvTest", None, Some(ClientType::Claude)).unwrap();
+    app::install("ComplexEnvTest", None, ClientType::Claude.as_str()).unwrap();
 
     // Get the config directly to verify args
-    let config = app::get_config(Some(&ClientType::Claude)).unwrap();
+    let config = app::get_config(&ClientType::Claude).unwrap();
     let args = &config["mcpServers"]["complextest"]["args"];
 
     // Verify that environment variables were replaced correctly

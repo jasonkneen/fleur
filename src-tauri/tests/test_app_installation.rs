@@ -50,18 +50,18 @@ fn test_full_app_lifecycle() {
     }
 
     // Test installation
-    let install_result = app::install("Browser", None, Some(ClientType::Cursor));
+    let install_result = app::install("Browser", None, ClientType::Cursor.as_str());
     assert!(
         install_result.is_ok(),
         "Install failed: {:?}",
         install_result
     );
-    assert!(app::is_installed("Browser", Some(ClientType::Cursor.as_str().to_string())).unwrap());
+    assert!(app::is_installed("Browser", ClientType::Cursor.as_str()).unwrap());
 
     // Test uninstallation
-    let uninstall_result = app::uninstall("Browser", Some(ClientType::Cursor.as_str().to_string()));
+    let uninstall_result = app::uninstall("Browser", ClientType::Cursor.as_str());
     assert!(uninstall_result.is_ok());
-    assert!(!app::is_installed("Browser", Some(ClientType::Cursor.as_str().to_string())).unwrap());
+    assert!(!app::is_installed("Browser", ClientType::Cursor.as_str()).unwrap());
 
     // Cleanup
     app::set_test_config_path(None);
