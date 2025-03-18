@@ -22,7 +22,16 @@ fn setup_logger() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .build();
 
-    WriteLogger::init(LevelFilter::Info, config, fs::File::create(log_file)?)?;
+    // Use Debug level in debug builds (development mode)
+    // Use Info level in release builds (production mode)
+    #[cfg(debug_assertions)]
+    let level = LevelFilter::Debug;
+
+    #[cfg(not(debug_assertions))]
+    let level = LevelFilter::Info;
+
+    WriteLogger::init(level, config, fs::File::create(log_file)?)?;
+    info!("Logger initialized with level: {:?}", level);
     Ok(())
 }
 
@@ -131,14 +140,11 @@ pub fn run() {
             app::save_app_env,
             app::get_app_env,
             app::get_app_registry,
-            app::restart_claude_app,
             app::restart_client_app,
             app::install_fleur_mcp,
             app::uninstall_fleur_mcp,
             app::check_onboarding_completed,
             app::reset_onboarding_completed,
-            app::check_claude_installed,
-            app::check_cursor_installed,
             app::check_client_installed,
             app::get_supported_clients,
             app::get_default_client_command,

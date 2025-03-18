@@ -8,6 +8,8 @@ import { Button } from '../ui/button';
 import { TextAnimate } from '../magicui/text-animate';
 import { BlurFade } from '../magicui/blur-fade';
 import { DragRegion } from '../ui/drag-region';
+import { useStore } from '@tanstack/react-store';
+import { appStore } from '@/store/app';
 
 interface OnboardingScreenProps {
   isOpen: boolean;
@@ -42,6 +44,9 @@ export function OnboardingScreen({
   const [currentStep, setCurrentStep] = useState(0);
   const [isClaudeInstalled, setIsClaudeInstalled] = useState(false);
   const claudeOpened = useRef(false);
+  const { currentClient } = useStore(appStore, (state) => ({
+    currentClient: state.currentClient,
+  }));
 
   const steps = [
     {
@@ -61,9 +66,8 @@ export function OnboardingScreen({
   ];
 
   useEffect(() => {
-    // Check if Claude is installed when component mounts or when step 1 is reached
     if (currentStep === 1) {
-      invoke<boolean>("check_claude_installed")
+      invoke<boolean>("check_client_installed", { client: currentClient })
         .then((installed) => {
           setIsClaudeInstalled(installed);
           console.log("Claude installed:", installed);
@@ -99,7 +103,7 @@ export function OnboardingScreen({
     // Set up window focus handler
     const handleWindowFocus = () => {
       // When window regains focus, check Claude installation status again
-      invoke<boolean>("check_claude_installed")
+      invoke<boolean>("check_client_installed", { client: currentClient })
         .then((installed) => {
           setIsClaudeInstalled(installed);
           console.log("Claude installed (focus check):", installed);
@@ -122,7 +126,7 @@ export function OnboardingScreen({
   const onDropSuccess = () => {
     setCurrentStep(currentStep + 1);
 
-    invoke("install_fleur_mcp")
+    invoke("install_fleur_mcp", { client: currentClient })
       .then(() => {
         console.log("Successfully installed fleur-mcp");
       })
@@ -134,7 +138,7 @@ export function OnboardingScreen({
   const handleOpenClaude = () => {
     claudeOpened.current = true; // Set flag indicating Claude was opened
 
-    invoke("restart_claude_app")
+    invoke("restart_client_app", { client: currentClient })
       .then(() => {
         console.log("Successfully opened Claude");
       })

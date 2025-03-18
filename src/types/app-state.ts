@@ -1,4 +1,5 @@
-import { App } from "./components/app";
+import { ClientType } from "@/types/clients";
+import { App } from "@/types/components/app";
 
 interface AppState {
   installedApps: string[];
@@ -11,6 +12,7 @@ interface AppState {
   apps: App[];
   isLoadingApps: boolean;
   isOnboardingCompleted: boolean;
+  currentClient: ClientType;
 }
 
 export type { AppState };

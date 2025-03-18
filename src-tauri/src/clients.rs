@@ -49,18 +49,14 @@ pub struct ClientPathConfig {
 }
 
 lazy_static! {
-    // Map of client name -> path configuration
     static ref CLIENT_PATH_CONFIGS: Mutex<std::collections::HashMap<ClientType, ClientPathConfig>> = Mutex::new(std::collections::HashMap::new());
 }
 
-// Initialize default path configurations for supported clients
 pub fn init_client_path_configs() {
     let mut configs = CLIENT_PATH_CONFIGS.lock().unwrap();
 
-    // Only initialize if empty
     if configs.is_empty() {
         if let Some(home_dir) = dirs::home_dir() {
-            // Claude configuration
             configs.insert(
                 ClientType::Claude,
                 ClientPathConfig {
@@ -70,7 +66,6 @@ pub fn init_client_path_configs() {
                 }
             );
 
-            // Cursor configuration
             configs.insert(
                 ClientType::Cursor,
                 ClientPathConfig {
@@ -83,12 +78,9 @@ pub fn init_client_path_configs() {
     }
 }
 
-// Get the path configuration for a specific client
 pub fn get_client_path_config(client: &ClientType) -> Result<ClientPathConfig, String> {
-    // Initialize configs if needed
     init_client_path_configs();
 
-    // Get the client's path configuration
     let configs = CLIENT_PATH_CONFIGS.lock().unwrap();
     if let Some(config) = configs.get(client) {
         Ok(config.clone())
@@ -97,14 +89,11 @@ pub fn get_client_path_config(client: &ClientType) -> Result<ClientPathConfig, S
     }
 }
 
-// Set a custom path configuration for a client
 pub fn set_client_path_config(client: &ClientType, config: ClientPathConfig) -> Result<(), String> {
-    // Validate client
     if ClientType::from_str(client.as_str()).is_none() {
         return Err(format!("Unsupported client: {}", client.as_str()));
     }
 
-    // Update the configuration
     let mut configs = CLIENT_PATH_CONFIGS.lock().unwrap();
     configs.insert(client.clone(), config);
 
@@ -112,7 +101,6 @@ pub fn set_client_path_config(client: &ClientType, config: ClientPathConfig) -> 
     Ok(())
 }
 
-// Validate that a client name is supported
 pub fn validate_client(client: &ClientType) -> Result<(), String> {
     if ClientType::from_str(client.as_str()).is_none() {
         return Err(format!("Unsupported client: {}", client.as_str()));
@@ -120,18 +108,14 @@ pub fn validate_client(client: &ClientType) -> Result<(), String> {
     Ok(())
 }
 
-// Get the default client
 pub fn get_default_client() -> ClientType {
     ClientType::default()
 }
 
-// Check if a client is installed on the system
 pub fn check_client_installed(client: Option<&ClientType>) -> Result<bool, String> {
-    // Use the default client if none is provided
     let default = ClientType::default();
     let client = client.unwrap_or(&default);
 
-    // Validate client
     validate_client(client)?;
 
     #[cfg(target_os = "macos")]
@@ -142,26 +126,19 @@ pub fn check_client_installed(client: Option<&ClientType>) -> Result<bool, Strin
     }
 }
 
-// Restart a client application
-pub fn restart_client_app(client: Option<&ClientType>) -> Result<String, String> {
-    let default = ClientType::default();
-    let client = client.unwrap_or(&default);
-
+pub fn restart_client_app(client: &ClientType) -> Result<String, String> {
     validate_client(client)?;
 
     info!("Restarting {} app...", client.as_str());
 
-    // Kill the client app
     std::process::Command::new("pkill")
         .arg("-x")
         .arg(client.as_str())
         .output()
         .map_err(|e| format!("Failed to kill {} app: {}", client.as_str(), e))?;
 
-    // Wait a moment to ensure it's fully closed
     std::thread::sleep(std::time::Duration::from_millis(500));
 
-    // Relaunch the app
     std::process::Command::new("open")
         .arg("-a")
         .arg(client.as_str())
