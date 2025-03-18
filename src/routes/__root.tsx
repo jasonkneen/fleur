@@ -1,4 +1,4 @@
-import '../App.css';
+import '@/App.css';
 import { ThemeProvider } from 'next-themes';
 import { useStore } from '@tanstack/react-store';
 import { createRootRoute, Outlet } from '@tanstack/react-router';

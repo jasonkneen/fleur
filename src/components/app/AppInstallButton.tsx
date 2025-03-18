@@ -85,7 +85,7 @@ export function AppInstallButton({
         `${app.name} ${!newIsInstalled ? "uninstalled" : "installed"}`,
         {
           action: {
-            label: "Relaunch Claude",
+            label: `Relaunch ${currentClient}`,
             onClick: async () => {
               try {
                 await invoke("restart_client_app", { client: currentClient });
