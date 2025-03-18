@@ -86,7 +86,7 @@ fn fetch_app_registry() -> Result<Value, String> {
 
     // Fetch the registry from GitHub
     let registry_url =
-        "https://raw.githubusercontent.com/pranav7/app-registry/p7/12.03.25/browser-mcp/apps.json";
+        "https://raw.githubusercontent.com/fleuristes/app-registry/refs/heads/main/apps.json";
     info!("Fetching app registry from {}", registry_url);
     let response = get(registry_url).map_err(|e| {
         error!("Failed to fetch app registry: {}", e);
