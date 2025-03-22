@@ -653,7 +653,7 @@ pub fn install_fleur_mcp(client: &str) -> Result<String, String> {
     {
         let app_config = json!({
             "command": uvx_path,
-            "args": ["--from", "git+https://github.com/fleuristes/fleur-mcp", "fleur-mcp"]
+            "args": ["mcp-fleur"]
         });
 
         debug!("Adding config for fleur: {:?}", app_config);
