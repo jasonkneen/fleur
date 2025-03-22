@@ -1,15 +1,15 @@
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { useStore } from '@tanstack/react-store';
 import { useNavigate } from '@tanstack/react-router';
 import { AppInstallButtonProps } from '@/types/components/app';
+import { appStore } from '@/store/app';
 import { cn } from '@/lib/utils';
 import { hasConfig } from '@/lib/hasConfig';
 import { Button } from '@/components/ui/button';
 import { ConfigurationMenu } from './configuration';
 import { Dialog, DialogContent, DialogTrigger } from '../ui/dialog';
-import { useStore } from '@tanstack/react-store';
-import { appStore } from '@/store/app';
 
 export function AppInstallButton({
   app,
@@ -125,6 +125,7 @@ export function AppInstallButton({
       const result = await invoke("save_app_env", {
         appName: app.name,
         envValues: setupValues,
+        client: currentClient,
       });
       toast.success(`Saved all configuration values for ${app.name}`);
       console.log(result);
@@ -179,6 +180,7 @@ export function AppInstallButton({
                 const result = await invoke("install", {
                   appName: app.name,
                   envVars: app.setup && app.setup.length > 0 ? setupValues : null,
+                  client: currentClient,
                 });
                 console.log(result);
 
