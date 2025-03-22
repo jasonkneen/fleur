@@ -31,7 +31,7 @@ curl -fsSL fleur.sh | sh
 - **App Discovery**: Browse and search for apps in the Fleur marketplace
 - **Lightweight and fast**: Fleur is built with Rust and Bun, making it lightweight and fast (it's less than 20MB)
 - **App Installation**: Easily install apps with a single click
-- **App Management**: View installed apps and their status
+- **App Management**: View installed apps and their status for each client (Claude Desktop and Cursor are supported)
 - **Automatic Updates**: Stay up-to-date with the latest app versions
 
 
