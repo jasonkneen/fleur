@@ -13,5 +13,5 @@ export const ClientTypeLabels = {
 export const clientIconMap = {
   [ClientType.Claude]: "/claude.svg",
   [ClientType.Cursor]: "/cursor.png",
-  [ClientType.Windsurf]: "/windsurf.svg",
+  [ClientType.Windsurf]: "/windsurf.png",
 };
