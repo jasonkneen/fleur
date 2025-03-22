@@ -1,22 +1,16 @@
-import { clientIconMap, ClientType, ClientTypeLabels } from "@/types/clients";
+import { useEffect, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
+import { clientIconMap, ClientType, ClientTypeLabels } from '@/types/clients';
+import { loadApps, loadAppStatuses } from '@/store/app';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { Check, ChevronDown, X } from "lucide-react";
-import { loadAppStatuses } from "@/store/app";
-import { useEffect, useState } from "react";
-import { loadApps } from "@/store/app";
-import { invoke } from "@tauri-apps/api/core";
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 export function ClientSelector({
   currentClient,
