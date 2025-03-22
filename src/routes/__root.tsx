@@ -25,14 +25,14 @@ export const Route = createRootRoute({
           <div className="bg-sand-100 shadow-lg border border-border h-screen p-2 pt-7 dark:bg-zinc-800">
             <div className="bg-background h-full rounded-lg dark:bg-zinc-900">
               <header className="sticky top-0 border-b border-border z-10">
-                <div className="container mx-auto px-4 py-1">
-                  <div className="flex items-center justify-between">
+                <div className="container mx-auto px-4 py-2">
+                  <div className="flex items-center justify-between relative">
                     <ClientSelector
                       currentClient={currentClient}
                       onClientChange={updateCurrentClient}
                     />
-                    <div className="flex items-center gap-4">
-                      <img src="/logo.svg" alt="Fleur" className="w-12 h-12" />
+                    <div className="absolute left-1/2 -translate-x-1/2 flex items-center">
+                      <img src="/logo.svg" alt="Fleur" className="w-10 h-10" />
                     </div>
                     <div className="flex items-center gap-3">
                       <Feedback />
