@@ -1,6 +1,8 @@
 pub mod app;
 pub mod environment;
 pub mod file_utils;
+pub mod clients;
+pub mod os;
 
 use log::{error, info};
 use simplelog::{ConfigBuilder, LevelFilter, WriteLogger};
@@ -20,7 +22,16 @@ fn setup_logger() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .build();
 
-    WriteLogger::init(LevelFilter::Info, config, fs::File::create(log_file)?)?;
+    // Use Debug level in debug builds (development mode)
+    // Use Info level in release builds (production mode)
+    #[cfg(debug_assertions)]
+    let level = LevelFilter::Debug;
+
+    #[cfg(not(debug_assertions))]
+    let level = LevelFilter::Info;
+
+    WriteLogger::init(level, config, fs::File::create(log_file)?)?;
+    info!("Logger initialized with level: {:?}", level);
     Ok(())
 }
 
@@ -109,6 +120,9 @@ pub fn run() {
         eprintln!("Failed to initialize logger: {}", e);
     }
 
+    // Initialize client path configurations
+    clients::init_client_path_configs();
+
     // Preload dependencies in background
     std::thread::spawn(|| {
         let _ = app::preload_dependencies();
@@ -126,12 +140,17 @@ pub fn run() {
             app::save_app_env,
             app::get_app_env,
             app::get_app_registry,
-            app::restart_claude_app,
+            app::restart_client_app,
             app::install_fleur_mcp,
             app::uninstall_fleur_mcp,
             app::check_onboarding_completed,
             app::reset_onboarding_completed,
-            app::check_claude_installed,
+            app::check_client_installed,
+            app::get_supported_clients,
+            app::get_default_client_command,
+            app::set_client_config_path,
+            app::get_client_config_path,
+            app::refresh_app_registry,
             environment::ensure_environment,
             log_from_frontend,
             open_system_url,

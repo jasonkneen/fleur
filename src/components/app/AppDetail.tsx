@@ -12,7 +12,7 @@ interface AppDetailProps {
 
 export function AppDetail({ app, isConfigured, isInstalled, onInstallationChange }: AppDetailProps) {
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full">
       <AppHeader
         app={app}
         isConfigured={isConfigured}

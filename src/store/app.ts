@@ -4,6 +4,7 @@ import { Store } from '@tanstack/store';
 import type { AppState } from '@/types/app-state';
 import type { App } from '@/types/components/app';
 import { isOnboardingCompleted as checkOnboardingCompleted, markOnboardingCompleted as markOnboardingDone } from '@/lib/onboarding';
+import { ClientType } from '@/types/clients';
 
 const initialAppStatuses = {
   installed: {} as Record<string, boolean>,
@@ -18,14 +19,15 @@ export const appStore = new Store<AppState>({
   apps: [],
   isLoadingApps: true,
   isOnboardingCompleted: checkOnboardingCompleted(),
+  currentClient: ClientType.Claude,
 });
 
-export const loadAppStatuses = async () => {
+export const loadAppStatuses = async (client: ClientType) => {
   try {
     const result = await invoke<{
       installed: Record<string, boolean>;
       configured: Record<string, boolean>;
-    }>('get_app_statuses');
+    }>('get_app_statuses', { client });
 
     appStore.setState((state) => ({
       ...state,
@@ -56,9 +58,9 @@ export const loadApps = async () => {
     // We need to cast it to App[] after receiving it
     const result = await invoke('get_app_registry');
     const apps = result as App[];
-    
+
     console.log('Loaded apps:', apps);
-    
+
     appStore.setState((state) => ({
       ...state,
       apps,
@@ -99,17 +101,16 @@ export const refreshApps = async () => {
 
     const result = await invoke('refresh_app_registry');
     const apps = result as App[];
-    
+
     console.log('Refreshed apps:', apps);
-    
+
     appStore.setState((state) => ({
       ...state,
       apps,
       isLoadingApps: false,
     }));
 
-    // Also refresh the app statuses
-    await loadAppStatuses();
+    await loadAppStatuses(appStore.state.currentClient);
 
     return apps;
   } catch (error) {
@@ -127,5 +128,12 @@ export const completeOnboarding = () => {
   appStore.setState((state) => ({
     ...state,
     isOnboardingCompleted: true,
+  }));
+};
+
+export const updateCurrentClient = (client: ClientType) => {
+  appStore.setState((state) => ({
+    ...state,
+    currentClient: client,
   }));
 };

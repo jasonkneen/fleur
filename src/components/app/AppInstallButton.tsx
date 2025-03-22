@@ -8,6 +8,8 @@ import { hasConfig } from '@/lib/hasConfig';
 import { Button } from '@/components/ui/button';
 import { ConfigurationMenu } from './configuration';
 import { Dialog, DialogContent, DialogTrigger } from '../ui/dialog';
+import { useStore } from '@tanstack/react-store';
+import { appStore } from '@/store/app';
 
 export function AppInstallButton({
   app,
@@ -17,6 +19,7 @@ export function AppInstallButton({
   showConfigure = true,
 }: AppInstallButtonProps) {
   const navigate = useNavigate();
+  const currentClient = useStore(appStore, (state) => state.currentClient);
   const [setupValues, setSetupValues] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({
     all: false,
@@ -31,6 +34,7 @@ export function AppInstallButton({
             "get_app_env",
             {
               appName: app.name,
+              client: currentClient,
             }
           );
           setSetupValues(envValues || {});
@@ -50,11 +54,11 @@ export function AppInstallButton({
       if (isInstalled) {
         const result = await invoke("uninstall", {
           appName: app.name,
+          client: currentClient,
         });
         console.log(result);
       } else {
         if (hasConfig(app)) {
-          // Show configuration dialog first instead of installing immediately
           setShowConfigDialog(true);
           return;
         }
@@ -62,6 +66,7 @@ export function AppInstallButton({
         const result = await invoke("install", {
           appName: app.name,
           envVars: app.setup && app.setup.length > 0 ? setupValues : null,
+          client: currentClient,
         });
 
         window.analytics.track('app_installed', {
@@ -72,6 +77,7 @@ export function AppInstallButton({
 
       const newIsInstalled = await invoke<boolean>("is_installed", {
         appName: app.name,
+        client: currentClient,
       });
       onInstallationChange(newIsInstalled);
 
@@ -79,14 +85,14 @@ export function AppInstallButton({
         `${app.name} ${!newIsInstalled ? "uninstalled" : "installed"}`,
         {
           action: {
-            label: "Relaunch Claude",
+            label: `Relaunch ${currentClient}`,
             onClick: async () => {
               try {
-                await invoke("restart_claude_app");
-                toast.success("Claude app is restarting...");
+                await invoke("restart_client_app", { client: currentClient });
+                toast.success(`${currentClient} app is restarting...`);
               } catch (error) {
                 console.error("Failed to restart Claude app:", error);
-                toast.error("Failed to restart Claude app");
+                toast.error(`Failed to restart ${currentClient} app`);
               }
             },
           },
@@ -138,7 +144,7 @@ export function AppInstallButton({
             <Button
               variant="ghost"
               size="sm"
-              className="transition-colors rounded-lg px-3 bg-transparent text-sand/20 dark:text-blue-400 border border-sand-100 border-border hover:bg-transparent dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
+              className="transition-colors rounded-lg px-3 bg-transparent text-sand/20 dark:text-blue-400 border border-sand-100 hover:bg-transparent dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
               onClick={() =>
                 navigate({ to: "/app/$name", params: { name: app.name } })
               }>
@@ -167,7 +173,7 @@ export function AppInstallButton({
             onSave={async () => {
               await saveAll();
               setShowConfigDialog(false);
-              
+
               // Proceed with installation after configuration is saved
               try {
                 const result = await invoke("install", {
@@ -175,32 +181,33 @@ export function AppInstallButton({
                   envVars: app.setup && app.setup.length > 0 ? setupValues : null,
                 });
                 console.log(result);
-                
+
                 window.analytics.track('app_installed', {
                   app_name: app.name,
                 });
-                
+
                 const newIsInstalled = await invoke<boolean>("is_installed", {
                   appName: app.name,
+                  client: currentClient,
                 });
                 onInstallationChange(newIsInstalled);
-                
+
                 toast.success(`${app.name} installed`, {
                   action: {
-                    label: "Relaunch Claude",
+                    label: `Relaunch ${currentClient}`,
                     onClick: async () => {
                       try {
-                        await invoke("restart_claude_app");
-                        toast.success("Claude app is restarting...");
+                        await invoke("restart_client_app", { client: currentClient });
+                        toast.success(`${currentClient} app is restarting...`);
                       } catch (error) {
-                        console.error("Failed to restart Claude app:", error);
-                        toast.error("Failed to restart Claude app");
+                        console.error(`Failed to restart ${currentClient} app:`, error);
+                        toast.error(`Failed to restart ${currentClient} app`);
                       }
                     },
                   },
                   duration: 10000,
                 });
-                
+
                 if (app.setup && app.setup.length > 0 && newIsInstalled) {
                   navigate({ to: "/app/$name", params: { name: app.name } });
                 }
@@ -221,7 +228,7 @@ export function AppInstallButton({
           !isConfigured
             ? "bg-transparent text-muted-foreground cursor-not-allowed"
             : isInstalled
-              ? "text-sand/20 hover:bg-sand/50 hover:text-red-500 hover:bg-red-500/10"
+              ? "text-sand/20 hover:text-red-500 hover:bg-red-500/10"
               : "bg-sand px-6 border border-border hover:bg-sand/50 text-sand/20 dark:text-blue-400 dark:hover:ring-blue-100 dark:active:ring-blue-100 dark:hover:bg-blue-400/20"
         )}
         disabled={!isConfigured}

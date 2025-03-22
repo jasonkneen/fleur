@@ -3,16 +3,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { useStore } from "@tanstack/react-store";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { appStore, loadAppStatuses, updateAppInstallation } from "@/store/app";
-import { Loader } from "../components/ui/loader";
+import { Loader } from "@/components/ui/loader";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from "../components/ui/breadcrumb";
-import { AppDetail } from "../components/app/AppDetail";
-import { useApps } from "../appRegistry";
+} from "@/components/ui/breadcrumb";
+import { AppDetail } from "@/components/app/AppDetail";
+import { useApps } from "@/appRegistry";
 
 import type { App } from "@/types/components/app";
 
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/app/$name")({
 });
 
 function AppPage() {
+  const currentClient = useStore(appStore, (state) => state.currentClient);
   const { name } = Route.useParams();
   const [app, setApp] = useState<App | null>(null);
   const appStatuses = useStore(appStore, (state) => state.appStatuses);
@@ -30,7 +31,6 @@ function AppPage() {
   );
   const { apps, isLoading: isLoadingApps } = useApps();
 
-  // Log app statuses when they change
   useEffect(() => {
     if (appStatuses) {
       invoke("log_from_frontend", {
@@ -40,7 +40,7 @@ function AppPage() {
         console.error("Failed to log app statuses:", error);
       });
     }
-  }, [appStatuses, name]);
+  }, [appStatuses, name, currentClient]);
 
   useEffect(() => {
     const app = apps.find((a) => a.name === name);
@@ -50,10 +50,10 @@ function AppPage() {
         !appStatuses?.installed?.[app.name] &&
         !appStatuses?.configured?.[app.name]
       ) {
-        loadAppStatuses();
+        loadAppStatuses(currentClient);
       }
     }
-  }, [name, apps, appStatuses?.installed, appStatuses?.configured]);
+  }, [name, apps, appStatuses?.installed, appStatuses?.configured, currentClient]);
 
   const handleInstallationChange = (isInstalled: boolean) => {
     if (app) {
