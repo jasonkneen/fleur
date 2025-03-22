@@ -52,13 +52,9 @@ if [ -z "$APPLE_TEAM_ID" ]; then
   exit 1
 fi
 
-read -p "Do you want to notarize the DMG after creation? (y/n): " SHOULD_NOTARIZE
-
-if [[ "$SHOULD_NOTARIZE" =~ ^[Yy]$ ]]; then
-  if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ]; then
-    echo -e "${RED}Error: Notarization requires APPLE_ID and APPLE_PASSWORD to be set${NC}"
-    exit 1
-  fi
+if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ]; then
+  echo -e "${RED}Error: Notarization requires APPLE_ID and APPLE_PASSWORD to be set${NC}"
+  exit 1
 fi
 
 # Verify the app is properly signed before proceeding
@@ -96,49 +92,49 @@ codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$OUTPUT_DMG_PATH"
 echo -e "${GREEN}Verifying DMG signature...${NC}"
 codesign --verify --verbose "$OUTPUT_DMG_PATH"
 
-if [[ "$SHOULD_NOTARIZE" =~ ^[Yy]$ ]]; then
-  echo -e "${GREEN}Submitting DMG for notarization...${NC}"
-  
-  # Store the submission output in a variable
-  NOTARIZATION_OUTPUT=$(xcrun notarytool submit "$OUTPUT_DMG_PATH" \
+
+echo -e "${GREEN}Submitting DMG for notarization...${NC}"
+
+# Store the submission output in a variable
+NOTARIZATION_OUTPUT=$(xcrun notarytool submit "$OUTPUT_DMG_PATH" \
+  --apple-id "$APPLE_ID" \
+  --password "$APPLE_PASSWORD" \
+  --team-id "$APPLE_TEAM_ID" \
+  --wait)
+
+echo "$NOTARIZATION_OUTPUT"
+
+# Extract the submission ID from the output
+SUBMISSION_ID=$(echo "$NOTARIZATION_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+
+if [ -z "$SUBMISSION_ID" ]; then
+  echo -e "${RED}Error: Could not extract submission ID from notarization output${NC}"
+  echo -e "${RED}Skipping notarization status check and stapling${NC}"
+else
+  # Check notarization status with the extracted ID
+  echo -e "${GREEN}Checking notarization status for ID: $SUBMISSION_ID${NC}"
+  xcrun notarytool info "$SUBMISSION_ID" \
     --apple-id "$APPLE_ID" \
     --password "$APPLE_PASSWORD" \
-    --team-id "$APPLE_TEAM_ID" \
-    --wait)
+    --team-id "$APPLE_TEAM_ID"
   
-  echo "$NOTARIZATION_OUTPUT"
+  # Get the status from the notarization output
+  NOTARIZATION_STATUS=$(echo "$NOTARIZATION_OUTPUT" | grep "status:" | tail -1 | awk '{print $2}')
   
-  # Extract the submission ID from the output
-  SUBMISSION_ID=$(echo "$NOTARIZATION_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
-  
-  if [ -z "$SUBMISSION_ID" ]; then
-    echo -e "${RED}Error: Could not extract submission ID from notarization output${NC}"
-    echo -e "${RED}Skipping notarization status check and stapling${NC}"
+  if [ "$NOTARIZATION_STATUS" == "Accepted" ]; then
+    # Staple the notarization ticket to the DMG
+    echo -e "${GREEN}Stapling notarization ticket to DMG...${NC}"
+    xcrun stapler staple "$OUTPUT_DMG_PATH"
+    
+    # Verify stapling
+    echo -e "${GREEN}Verifying stapling...${NC}"
+    xcrun stapler validate "$OUTPUT_DMG_PATH"
   else
-    # Check notarization status with the extracted ID
-    echo -e "${GREEN}Checking notarization status for ID: $SUBMISSION_ID${NC}"
-    xcrun notarytool info "$SUBMISSION_ID" \
-      --apple-id "$APPLE_ID" \
-      --password "$APPLE_PASSWORD" \
-      --team-id "$APPLE_TEAM_ID"
-    
-    # Get the status from the notarization output
-    NOTARIZATION_STATUS=$(echo "$NOTARIZATION_OUTPUT" | grep "status:" | tail -1 | awk '{print $2}')
-    
-    if [ "$NOTARIZATION_STATUS" == "Accepted" ]; then
-      # Staple the notarization ticket to the DMG
-      echo -e "${GREEN}Stapling notarization ticket to DMG...${NC}"
-      xcrun stapler staple "$OUTPUT_DMG_PATH"
-      
-      # Verify stapling
-      echo -e "${GREEN}Verifying stapling...${NC}"
-      xcrun stapler validate "$OUTPUT_DMG_PATH"
-    else
-      echo -e "${RED}Notarization was not successful. Status: $NOTARIZATION_STATUS${NC}"
-      echo -e "${RED}Skipping stapling step.${NC}"
-    fi
+    echo -e "${RED}Notarization was not successful. Status: $NOTARIZATION_STATUS${NC}"
+    echo -e "${RED}Skipping stapling step.${NC}"
   fi
 fi
+
 
 echo -e "${GREEN}Process complete!${NC}"
 echo -e "${GREEN}Generated artifacts:${NC}"

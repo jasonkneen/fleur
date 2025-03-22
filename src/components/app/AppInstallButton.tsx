@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useStore } from '@tanstack/react-store';
 import { useNavigate } from '@tanstack/react-router';
 import { AppInstallButtonProps } from '@/types/components/app';
+import { ClientType } from '@/types/clients';
 import { appStore } from '@/store/app';
 import { cn } from '@/lib/utils';
 import { hasConfig } from '@/lib/hasConfig';
@@ -81,21 +82,17 @@ export function AppInstallButton({
       });
       onInstallationChange(newIsInstalled);
 
+      const action = currentClient === ClientType.Claude ? {
+        label: `Relaunch Claude`,
+        onClick: async () => {
+          await invoke("restart_client_app", { client: currentClient });
+          toast.success(`${currentClient} app is restarting...`);
+        },
+      } : undefined;
       toast.success(
         `${app.name} ${!newIsInstalled ? "uninstalled" : "installed"}`,
         {
-          action: {
-            label: `Relaunch ${currentClient}`,
-            onClick: async () => {
-              try {
-                await invoke("restart_client_app", { client: currentClient });
-                toast.success(`${currentClient} app is restarting...`);
-              } catch (error) {
-                console.error("Failed to restart Claude app:", error);
-                toast.error(`Failed to restart ${currentClient} app`);
-              }
-            },
-          },
+          action,
           duration: 10000,
         }
       );
