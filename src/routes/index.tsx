@@ -1,11 +1,11 @@
-import { useEffect } from "react";
-import { useTheme } from "next-themes";
-import { invoke } from "@tauri-apps/api/core";
-import { useStore } from "@tanstack/react-store";
-import { createFileRoute } from "@tanstack/react-router";
-import { appStore, loadApps, loadAppStatuses } from "@/store/app";
-import { updateTauriTheme } from "@/lib/update-tauri-theme";
-import { Home } from "../components/app/home";
+import { useEffect } from 'react';
+import { useTheme } from 'next-themes';
+import { invoke } from '@tauri-apps/api/core';
+import { useStore } from '@tanstack/react-store';
+import { createFileRoute } from '@tanstack/react-router';
+import { appStore, loadApps, loadAppStatuses } from '@/store/app';
+import { updateTauriTheme } from '@/lib/update-tauri-theme';
+import { Home } from '@/components/app/home';
 
 export const Route = createFileRoute("/")({
   component: Index,

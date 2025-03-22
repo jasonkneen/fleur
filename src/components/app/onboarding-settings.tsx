@@ -1,6 +1,8 @@
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { useStore } from '@tanstack/react-store';
+import { appStore } from '@/store/app';
 import { resetOnboardingStatus } from '@/lib/onboarding';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
@@ -10,6 +12,9 @@ export function OnboardingSettings() {
   const [isFleurEnabled, setIsFleurEnabled] = useState(false);
   const [isFleurToggling, setIsFleurToggling] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const { currentClient } = useStore(appStore, (state) => ({
+    currentClient: state.currentClient,
+  }));
 
   useEffect(() => {
     checkFleurStatus();
@@ -30,10 +35,10 @@ export function OnboardingSettings() {
     setIsFleurToggling(true);
     try {
       if (enabled) {
-        await invoke("install_fleur_mcp");
+        await invoke("install_fleur_mcp", { client: currentClient });
         toast.success("Fleur onboarding enabled");
       } else {
-        await invoke("uninstall_fleur_mcp");
+        await invoke("uninstall_fleur_mcp", { client: currentClient });
         toast.success("Fleur onboarding disabled");
       }
       setIsFleurEnabled(enabled);

@@ -21,9 +21,9 @@ export const Route = createRootRoute({
     return (
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <DragRegion className="absolute z-overlay top-0 left-0 right-0" />
-        <div className="min-h-screen bg-sand-100 text-foreground">
-          <div className="bg-sand-100 shadow-lg border border-border h-screen p-2 pt-7">
-            <div className="bg-background h-full rounded-lg">
+        <div className="min-h-screen bg-sand-100 text-foreground dark:bg-zinc-900">
+          <div className="bg-sand-100 shadow-lg border border-border h-screen p-2 pt-7 dark:bg-zinc-800">
+            <div className="bg-background h-full rounded-lg dark:bg-zinc-900">
               <header className="sticky top-0 border-b border-border z-10">
                 <div className="container mx-auto px-4 py-1">
                   <div className="flex items-center justify-between">
