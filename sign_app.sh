@@ -54,13 +54,6 @@ if [ -z "$APPLE_TEAM_ID" ]; then
   exit 1
 fi
 
-read -p "Do you want to continue with signing using the identity above? (y/n): " SHOULD_CONTINUE
-if [[ ! "$SHOULD_CONTINUE" =~ ^[Yy]$ ]]; then
-  echo -e "${YELLOW}Signing cancelled. Please update your .env file with the correct identity.${NC}"
-  exit 0
-fi
-
-# Check if entitlements file exists
 ENTITLEMENTS_PATH="./src-tauri/macos/entitlements.plist"
 if [ ! -f "$ENTITLEMENTS_PATH" ]; then
   echo -e "${YELLOW}Warning: Entitlements file not found at $ENTITLEMENTS_PATH${NC}"
