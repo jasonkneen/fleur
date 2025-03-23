@@ -1,4 +1,4 @@
-use crate::environment::{ensure_environment_sync, ensure_npx_shim, get_uvx_path};
+use crate::environment::{self, ensure_environment_sync, ensure_npx_shim, get_uvx_path};
 use crate::file_utils::{ensure_config_file, ensure_mcp_servers};
 use crate::clients::{self, ClientType, ClientPathConfig};
 use dirs;
@@ -336,11 +336,11 @@ pub fn preload_dependencies() -> Result<(), String> {
                     .filter(|p| p.exists());
 
                 if let Some(npm_cmd) = npm_path {
-                    let _ = Command::new(npm_cmd)
+                    let _ = Command::new(&npm_cmd)
                         .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
                         .output();
 
-                    let _ = Command::new(npm_cmd)
+                    let _ = Command::new(&npm_cmd)
                         .args(["cache", "add", "mcp-server-time"])
                         .output();
                 } else {

@@ -734,7 +734,9 @@ fn check_uv_installed() -> bool {
   let which_cmd = Command::new("which").arg("uv");
 
   #[cfg(target_os = "windows")]
-  let which_cmd = Command::new("where").arg("uv");
+  let mut binding = Command::new("where");
+  #[cfg(target_os = "windows")]
+  let which_cmd = binding.arg("uv");
 
   let which_command = which_cmd
       .output()
