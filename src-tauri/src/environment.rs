@@ -139,6 +139,7 @@ fn find_existing_uvx() -> Option<String> {
         // Then check if it's in PATH using 'where' command
         match Command::new("where")
             .arg("uvx.exe") // Be explicit about the .exe extension on Windows
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
             .output()
         {
             Ok(output) if output.status.success() => {
@@ -154,7 +155,11 @@ fn find_existing_uvx() -> Option<String> {
             }
             _ => {
                 // Another approach: check if 'uvx' command works
-                match Command::new("uvx").arg("--version").output() {
+                match Command::new("uvx")
+                    .arg("--version")
+                    .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                    .output()
+                {
                     Ok(output) if output.status.success() => {
                         // If the command works, it's in PATH somewhere
                         info!("uvx command works but couldn't determine exact path");
@@ -197,8 +202,16 @@ pub fn get_uvx_path() -> Result<String, String> {
     }
 
     // Final fallback - check if uv is installed without uvx
+    #[cfg(target_os = "macos")]
     let uv_output = Command::new("which")
         .arg("uv")
+        .output()
+        .map_err(|e| format!("Failed to get uv path: {}", e))?;
+
+    #[cfg(target_os = "windows")]
+    let uv_output = Command::new("where")
+        .arg("uv.exe")
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
         .output()
         .map_err(|e| format!("Failed to get uv path: {}", e))?;
 
@@ -297,6 +310,13 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
 
         // Use the version without 'v' prefix for Windows NVM
         let version_no_v = NODE_VERSION.trim_start_matches('v');
+
+        // Make sure the version is in use
+        let _ = Command::new("nvm")
+            .arg("use")
+            .arg(version_no_v)
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .output();
 
         // Create paths to check for both with and without 'v' prefix
         let possible_node_paths = vec![
@@ -463,6 +483,7 @@ fn check_node_version() -> Result<String, String> {
         if check_nvm_installed() {
             let nvm_cmd = Command::new("nvm")
                 .arg("list")
+                .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
                 .output()
                 .map_err(|e| format!("Failed to check nvm node version: {}", e))?;
 
@@ -495,8 +516,16 @@ fn check_node_version() -> Result<String, String> {
     }
 
     // If not found in NVM, check system node
+    #[cfg(target_os = "macos")]
     let version_command = Command::new("node")
         .arg("--version")
+        .output()
+        .map_err(|e| format!("Failed to check node version: {}", e))?;
+
+    #[cfg(target_os = "windows")]
+    let version_command = Command::new("node")
+        .arg("--version")
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
         .output()
         .map_err(|e| format!("Failed to check node version: {}", e))?;
 
@@ -600,7 +629,7 @@ fn install_node() -> Result<(), String> {
         let output = Command::new("nvm")
             .arg("install")
             .arg(version_without_v)
-            .creation_flags(0x08000000)
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
             .output()
             .map_err(|e| format!("Failed to run node installation: {}", e))?;
 
@@ -615,6 +644,7 @@ fn install_node() -> Result<(), String> {
         let use_output = Command::new("nvm")
             .arg("use")
             .arg(version_without_v)
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
             .output()
             .map_err(|e| format!("Failed to set node version: {}", e))?;
 
@@ -770,7 +800,7 @@ fn install_nvm() -> Result<(), String> {
         let dl_output = Command::new("powershell")
             .arg("-Command")
             .arg(&download_cmd)
-            .creation_flags(0x08000000)
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
             .output()
             .map_err(|e| format!("Failed to download nvm installer: {}", e))?;
 
@@ -782,6 +812,7 @@ fn install_nvm() -> Result<(), String> {
         }
 
         // Run the installer (this will require user interaction)
+        // Note: For installers that need UI interaction, we don't use CREATE_NO_WINDOW flag
         info!("Starting NVM for Windows installer. Please follow the on-screen instructions.");
         let install_output = Command::new(&installer_path)
             .arg("/SILENT") // Use /SILENT for minimal UI with progress bar
@@ -830,24 +861,34 @@ fn check_uv_installed() -> bool {
 
     // Then check if uv is in PATH
     #[cfg(target_os = "macos")]
-    let which_cmd = Command::new("which").arg("uv");
-
-    #[cfg(target_os = "windows")]
-    let mut binding = Command::new("where");
-    #[cfg(target_os = "windows")]
-    let which_cmd = binding.arg("uv");
-
-    let which_command = which_cmd
+    let which_cmd_output = Command::new("which")
+        .arg("uv")
         .output()
         .map_or(false, |output| output.status.success());
 
-    if !which_command {
+    #[cfg(target_os = "windows")]
+    let which_cmd_output = {
+        Command::new("where")
+            .arg("uv.exe")
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .output()
+            .map_or(false, |output| output.status.success())
+    };
+
+    if !which_cmd_output {
         info!("uv not found in PATH");
         return false;
     }
 
     // Then check if we can run uv to confirm it's properly installed
+    #[cfg(target_os = "macos")]
     let version_command = Command::new("uv").arg("--version").output();
+
+    #[cfg(target_os = "windows")]
+    let version_command = Command::new("uv")
+        .arg("--version")
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+        .output();
 
     match version_command {
         Ok(output) if output.status.success() => {
@@ -919,7 +960,7 @@ fn install_uv() -> Result<(), String> {
             .arg("Bypass")
             .arg("-Command")
             .arg(ps_command)
-            .creation_flags(0x08000000)
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
             .output()
             .map_err(|e| format!("Failed to install uv: {}", e))?;
 
@@ -964,7 +1005,16 @@ fn install_uv() -> Result<(), String> {
         #[cfg(target_os = "windows")]
         let which_command = "where";
 
-        match Command::new(which_command).arg("uv").output() {
+        #[cfg(target_os = "macos")]
+        let which_output = Command::new(which_command).arg("uv").output();
+
+        #[cfg(target_os = "windows")]
+        let which_output = Command::new(which_command)
+            .arg("uv.exe")
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .output();
+
+        match which_output {
             Ok(output) if output.status.success() => {
                 let path = String::from_utf8_lossy(&output.stdout)
                     .lines()
@@ -1136,4 +1186,17 @@ pub fn ensure_environment() -> Result<String, String> {
     });
 
     Ok("Environment setup started".to_string())
+}
+
+// Helper function to create commands that don't spawn windows on Windows
+#[cfg(target_os = "windows")]
+pub fn create_windowless_command(program: &str) -> Command {
+    let mut cmd = Command::new(program);
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW flag
+    cmd
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn create_windowless_command(program: &str) -> Command {
+    Command::new(program)
 }

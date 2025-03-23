@@ -354,29 +354,35 @@ pub fn preload_dependencies() -> Result<(), String> {
                 if let Some(npm_cmd) = npm_path {
                     let _ = Command::new(&npm_cmd)
                         .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
+                        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
                         .output();
 
                     let _ = Command::new(&npm_cmd)
                         .args(["cache", "add", "mcp-server-time"])
+                        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
                         .output();
                 } else {
                     // Fallback to system npm
                     let _ = Command::new("npm")
                         .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
+                        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
                         .output();
 
                     let _ = Command::new("npm")
                         .args(["cache", "add", "mcp-server-time"])
+                        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
                         .output();
                 }
             } else {
                 // Fallback to system npm
                 let _ = Command::new("npm")
                     .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
+                    .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
                     .output();
 
                 let _ = Command::new("npm")
                     .args(["cache", "add", "mcp-server-time"])
+                    .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
                     .output();
             }
         }
@@ -479,7 +485,15 @@ pub fn install(
                     if command.contains("npx") && args.len() > 1 {
                         let package = &args[1];
                         info!("Pre-caching npm package: {}", package);
+
+                        #[cfg(target_os = "macos")]
                         let _ = Command::new("npm").args(["cache", "add", package]).output();
+
+                        #[cfg(target_os = "windows")]
+                        let _ = Command::new("npm")
+                            .args(["cache", "add", package])
+                            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                            .output();
                     }
                 });
             }
