@@ -12,6 +12,9 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 lazy_static! {
     static ref CONFIG_CACHE: Mutex<std::collections::HashMap<ClientType, Value>> =
         Mutex::new(std::collections::HashMap::new());
