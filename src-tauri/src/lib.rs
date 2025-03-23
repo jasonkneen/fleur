@@ -110,15 +110,6 @@ fn open_system_url(url: String) -> Result<(), String> {
             .map_err(|e| format!("Failed to open URL: {}", e))?;
     }
 
-    #[cfg(target_os = "linux")]
-    {
-        use std::process::Command;
-        Command::new("xdg-open")
-            .arg(url)
-            .output()
-            .map_err(|e| format!("Failed to open URL: {}", e))?;
-    }
-
     Ok(())
 }
 
