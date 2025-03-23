@@ -801,23 +801,16 @@ pub fn uninstall_fleur_mcp(client: &str) -> Result<String, String> {
 
 #[tauri::command]
 pub fn check_onboarding_completed() -> Result<bool, String> {
-    #[cfg(target_os = "macos")]
-    let onboarding_file = {
-        let home = match dirs::home_dir() {
-            Some(path) => path,
-            None => return Err("Could not determine home directory".to_string()),
-        };
-        home.join(".fleur/onboarding_completed")
+    let home = match dirs::home_dir() {
+        Some(path) => path,
+        None => return Err("Could not determine home directory".to_string()),
     };
 
+    #[cfg(target_os = "macos")]
+    let onboarding_file = home.join(".fleur/onboarding_completed");
+
     #[cfg(target_os = "windows")]
-    let onboarding_file = {
-        let appdata = match dirs::data_local_dir() {
-            Some(path) => path,
-            None => return Err("Could not determine AppData\\Local directory".to_string()),
-        };
-        appdata.join("fleur").join("onboarding_completed")
-    };
+    let onboarding_file = home.join(".fleur").join("onboarding_completed");
 
     debug!("Checking onboarding file at: {}", onboarding_file.display());
     Ok(onboarding_file.exists())
@@ -825,23 +818,16 @@ pub fn check_onboarding_completed() -> Result<bool, String> {
 
 #[tauri::command]
 pub fn reset_onboarding_completed() -> Result<bool, String> {
-    #[cfg(target_os = "macos")]
-    let onboarding_file = {
-        let home = match dirs::home_dir() {
-            Some(path) => path,
-            None => return Err("Could not determine home directory".to_string()),
-        };
-        home.join(".fleur/onboarding_completed")
+    let home = match dirs::home_dir() {
+        Some(path) => path,
+        None => return Err("Could not determine home directory".to_string()),
     };
 
+    #[cfg(target_os = "macos")]
+    let onboarding_file = home.join(".fleur/onboarding_completed");
+
     #[cfg(target_os = "windows")]
-    let onboarding_file = {
-        let appdata = match dirs::data_local_dir() {
-            Some(path) => path,
-            None => return Err("Could not determine AppData\\Local directory".to_string()),
-        };
-        appdata.join("fleur").join("onboarding_completed")
-    };
+    let onboarding_file = home.join(".fleur").join("onboarding_completed");
 
     debug!(
         "Resetting onboarding file at: {}",
