@@ -24,12 +24,6 @@ fn setup_logger() -> Result<(), Box<dyn std::error::Error>> {
         local_app_data.join("Fleur").join("Logs")
     };
 
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    let log_dir = {
-        let home = dirs::home_dir().ok_or("Could not find home directory")?;
-        home.join(".local/share/fleur/logs")
-    };
-
     fs::create_dir_all(&log_dir)?;
     let log_file = log_dir.join("fleur.log");
 

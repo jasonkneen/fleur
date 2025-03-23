@@ -812,9 +812,9 @@ pub fn check_onboarding_completed() -> Result<bool, String> {
 
     #[cfg(target_os = "windows")]
     let onboarding_file = {
-        let appdata = match dirs::config_dir() {
+        let appdata = match dirs::data_local_dir() {
             Some(path) => path,
-            None => return Err("Could not determine AppData directory".to_string()),
+            None => return Err("Could not determine AppData\\Local directory".to_string()),
         };
         appdata.join("fleur").join("onboarding_completed")
     };
@@ -836,9 +836,9 @@ pub fn reset_onboarding_completed() -> Result<bool, String> {
 
     #[cfg(target_os = "windows")]
     let onboarding_file = {
-        let appdata = match dirs::config_dir() {
+        let appdata = match dirs::data_local_dir() {
             Some(path) => path,
-            None => return Err("Could not determine AppData directory".to_string()),
+            None => return Err("Could not determine AppData\\Local directory".to_string()),
         };
         appdata.join("fleur").join("onboarding_completed")
     };
