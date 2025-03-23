@@ -1,9 +1,10 @@
 mod common;
 
+use env_logger;
 use fleur_lib::{
     app::{self, APP_REGISTRY_CACHE},
-    environment,
     clients::ClientType,
+    environment,
 };
 use log;
 use serde_json::json;
@@ -11,7 +12,6 @@ use serial_test::serial;
 use std::{thread, time::Duration};
 use tempfile;
 use uuid::Uuid;
-use env_logger;
 
 fn setup_test_registry() {
     let test_registry = json!([{
@@ -272,7 +272,11 @@ fn test_install_with_env_vars() {
         "TEST_ENV": "test_value",
         "DEBUG": "true"
     });
-    let install_result = app::install("Browser", Some(env_vars.clone()), ClientType::Claude.as_str());
+    let install_result = app::install(
+        "Browser",
+        Some(env_vars.clone()),
+        ClientType::Claude.as_str(),
+    );
     assert!(
         install_result.is_ok(),
         "Install with env vars failed: {:?}",
@@ -413,13 +417,25 @@ fn test_env_var_replacement_during_install() {
 
     // Verify that environment variables were replaced
     assert_eq!(args[0], "-y", "First arg should be -y");
-    assert_eq!(args[1], "mcp-server-test", "Second arg should be mcp-server-test");
+    assert_eq!(
+        args[1], "mcp-server-test",
+        "Second arg should be mcp-server-test"
+    );
     assert_eq!(args[2], "--prefix", "Third arg should be --prefix");
-    assert_eq!(args[3], "prefix_value", "PREFIX should be replaced with prefix_value");
+    assert_eq!(
+        args[3], "prefix_value",
+        "PREFIX should be replaced with prefix_value"
+    );
     assert_eq!(args[4], "--value", "Fifth arg should be --value");
-    assert_eq!(args[5], "test_value", "ENV_VAR should be replaced with test_value");
+    assert_eq!(
+        args[5], "test_value",
+        "ENV_VAR should be replaced with test_value"
+    );
     assert_eq!(args[6], "--suffix", "Seventh arg should be --suffix");
-    assert_eq!(args[7], "suffix_value", "SUFFIX should be replaced with suffix_value");
+    assert_eq!(
+        args[7], "suffix_value",
+        "SUFFIX should be replaced with suffix_value"
+    );
 
     // Cleanup
     cleanup_test_registry();
@@ -510,13 +526,34 @@ fn test_complex_env_var_replacements() {
     // Verify that environment variables were replaced correctly
     assert_eq!(args[0], "-y", "First arg should be -y");
     assert_eq!(args[1], "complex-test", "Second arg should be complex-test");
-    assert_eq!(args[2], "--simple=simple_value", "Simple variable should be replaced");
-    assert_eq!(args[3], "--combined=prefix_middle_suffix", "Multiple variables should be replaced");
-    assert_eq!(args[4], "--embedded=prefix_embedded_value_suffix", "Embedded variable should be replaced");
-    assert_eq!(args[5], "--numeric=42", "Numeric variable should be replaced");
-    assert_eq!(args[6], "--flag=true", "Boolean variable should be replaced");
-    assert_eq!(args[7], "--path=/tmp/test/subdir", "Path variable should be replaced");
-    assert_eq!(args[8], "--missing=${DOES_NOT_EXIST}", "Missing variable should remain unchanged");
+    assert_eq!(
+        args[2], "--simple=simple_value",
+        "Simple variable should be replaced"
+    );
+    assert_eq!(
+        args[3], "--combined=prefix_middle_suffix",
+        "Multiple variables should be replaced"
+    );
+    assert_eq!(
+        args[4], "--embedded=prefix_embedded_value_suffix",
+        "Embedded variable should be replaced"
+    );
+    assert_eq!(
+        args[5], "--numeric=42",
+        "Numeric variable should be replaced"
+    );
+    assert_eq!(
+        args[6], "--flag=true",
+        "Boolean variable should be replaced"
+    );
+    assert_eq!(
+        args[7], "--path=/tmp/test/subdir",
+        "Path variable should be replaced"
+    );
+    assert_eq!(
+        args[8], "--missing=${DOES_NOT_EXIST}",
+        "Missing variable should remain unchanged"
+    );
 
     // Cleanup
     cleanup_test_registry();

@@ -1,7 +1,7 @@
 pub mod app;
+pub mod clients;
 pub mod environment;
 pub mod file_utils;
-pub mod clients;
 pub mod os;
 
 use log::{error, info};
@@ -11,8 +11,19 @@ use tauri_plugin_updater::{Builder as UpdaterBuilder, UpdaterExt};
 use time::macros::format_description;
 
 fn setup_logger() -> Result<(), Box<dyn std::error::Error>> {
-    let home = dirs::home_dir().ok_or("Could not find home directory")?;
-    let log_dir = home.join("Library/Logs/Fleur");
+    #[cfg(target_os = "macos")]
+    let log_dir = {
+        let home = dirs::home_dir().ok_or("Could not find home directory")?;
+        home.join("Library/Logs/Fleur")
+    };
+
+    #[cfg(target_os = "windows")]
+    let log_dir = {
+        let local_app_data =
+            dirs::data_local_dir().ok_or("Could not find AppData\\Local directory")?;
+        local_app_data.join("Fleur").join("Logs")
+    };
+
     fs::create_dir_all(&log_dir)?;
     let log_file = log_dir.join("fleur.log");
 
@@ -22,8 +33,6 @@ fn setup_logger() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .build();
 
-    // Use Debug level in debug builds (development mode)
-    // Use Info level in release builds (production mode)
     #[cfg(debug_assertions)]
     let level = LevelFilter::Debug;
 
@@ -97,15 +106,6 @@ fn open_system_url(url: String) -> Result<(), String> {
         use std::process::Command;
         Command::new("cmd")
             .args(["/c", "start", &url])
-            .output()
-            .map_err(|e| format!("Failed to open URL: {}", e))?;
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        use std::process::Command;
-        Command::new("xdg-open")
-            .arg(url)
             .output()
             .map_err(|e| format!("Failed to open URL: {}", e))?;
     }
