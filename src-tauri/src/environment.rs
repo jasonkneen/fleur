@@ -28,52 +28,49 @@ pub fn is_test_mode() -> bool {
 }
 
 pub fn get_npx_shim_path() -> std::path::PathBuf {
-  if is_test_mode() {
-      return std::path::PathBuf::from("/test/.local/share/fleur/bin/npx-fleur");
-  }
+    if is_test_mode() {
+        return std::path::PathBuf::from("/test/.local/share/fleur/bin/npx-fleur");
+    }
 
-  #[cfg(target_os = "macos")]
-  {
-      let path = dirs::home_dir()
-          .unwrap_or_default()
-          .join(".local/share/fleur/bin/npx-fleur");
+    #[cfg(target_os = "macos")]
+    {
+        let path = dirs::home_dir()
+            .unwrap_or_default()
+            .join(".local/share/fleur/bin/npx-fleur");
 
-      return path;
-  }
+        return path;
+    }
 
-  #[cfg(target_os = "windows")]
-  {
-      // First check the expected local location
-      let local_path = dirs::data_local_dir()
-          .unwrap_or_default()
-          .join("fleur")
-          .join("bin")
-          .join("npx-fleur.cmd");
+    #[cfg(target_os = "windows")]
+    {
+        // First check the expected local location
+        let local_path = dirs::data_local_dir()
+            .unwrap_or_default()
+            .join("fleur")
+            .join("bin")
+            .join("npx-fleur.cmd");
 
-      if local_path.exists() {
-          return local_path;
-      }
+        if local_path.exists() {
+            return local_path;
+        }
 
-      // Then check if 'npx-fleur.cmd' is available in PATH
-      if let Ok(output) = Command::new("where")
-          .arg("npx-fleur.cmd")
-          .output()
-      {
-          if output.status.success() {
-              let paths = String::from_utf8_lossy(&output.stdout);
-              if let Some(path) = paths.lines().next() {
-                  let path = path.trim();
-                  if !path.is_empty() {
-                      debug!("Found npx-fleur in PATH at {}", path);
-                      return std::path::PathBuf::from(path);
-                  }
-              }
-          }
-      }
+        // Then check if 'npx-fleur.cmd' is available in PATH
+        if let Ok(output) = Command::new("where").arg("npx-fleur.cmd").output() {
+            if output.status.success() {
+                let paths = String::from_utf8_lossy(&output.stdout);
+                if let Some(path) = paths.lines().next() {
+                    let path = path.trim();
+                    if !path.is_empty() {
+                        debug!("Found npx-fleur in PATH at {}", path);
+                        return std::path::PathBuf::from(path);
+                    }
+                }
+            }
+        }
 
-      // Return the expected path even if it doesn't exist yet
-      return local_path;
-  }
+        // Return the expected path even if it doesn't exist yet
+        return local_path;
+    }
 }
 
 fn find_existing_uvx() -> Option<String> {
@@ -171,7 +168,7 @@ fn find_existing_uvx() -> Option<String> {
         }
 
         // Not found
-        return None
+        return None;
     }
 
     return None;
@@ -320,20 +317,24 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
 
         // Create paths to check for both with and without 'v' prefix
         let possible_node_paths = vec![
-            nvm_root.join(version_no_v).join("node.exe"),              // Without 'v' prefix
+            nvm_root.join(version_no_v).join("node.exe"), // Without 'v' prefix
             nvm_root.join(format!("v{}", version_no_v)).join("node.exe"), // With 'v' prefix
         ];
 
         // Find the first path that exists
-        let node_path = possible_node_paths.iter()
+        let node_path = possible_node_paths
+            .iter()
             .find(|path| path.exists())
-            .ok_or_else(|| format!(
-                "Node.js executable not found at any of the expected paths: {:?}",
-                possible_node_paths
-            ))?;
+            .ok_or_else(|| {
+                format!(
+                    "Node.js executable not found at any of the expected paths: {:?}",
+                    possible_node_paths
+                )
+            })?;
 
         // Get the parent directory of the node.exe file to find npx.cmd in the same directory
-        let parent_dir = node_path.parent()
+        let parent_dir = node_path
+            .parent()
             .ok_or("Could not determine parent directory of node.exe")?;
 
         let npx_path = parent_dir.join("npx.cmd");
@@ -419,7 +420,7 @@ exec "$NPX" "$@"
 
                 // Create a more robust shim script for Windows
                 let shim_content = format!(
-                r#"@echo off
+                    r#"@echo off
 :: NPX shim for Fleur on Windows
 
 set NODE_PATH={}
@@ -429,14 +430,14 @@ set PATH=%NODE_PATH%;%PATH%
 
 "%NPX%" %*
 "#,
-                node_dir, node_path, npx_path
-            );
+                    node_dir, node_path, npx_path
+                );
 
                 std::fs::write(&shim_path, shim_content)
                     .map_err(|e| format!("Failed to write shim script: {}", e))?;
 
                 info!("NPX shim created at {}", shim_path.display());
-            },
+            }
             Err(e) => {
                 error!("Failed to get node paths for shim creation: {}", e);
                 return Err(format!("Failed to create NPX shim: {}", e));
@@ -512,8 +513,11 @@ fn check_node_version() -> Result<String, String> {
                 .or_else(|| dirs::home_dir().map(|p| p.join("AppData").join("Roaming").join("nvm")))
                 .unwrap_or_default();
 
-            let node_exists = nvm_root.join(version_no_v).join("node.exe").exists() ||
-                              nvm_root.join(format!("v{}", version_no_v)).join("node.exe").exists();
+            let node_exists = nvm_root.join(version_no_v).join("node.exe").exists()
+                || nvm_root
+                    .join(format!("v{}", version_no_v))
+                    .join("node.exe")
+                    .exists();
 
             if node_exists {
                 info!("Node.js {} binary found via nvm", NODE_VERSION);
@@ -670,8 +674,11 @@ fn install_node() -> Result<(), String> {
             .or_else(|| dirs::home_dir().map(|p| p.join("AppData").join("Roaming").join("nvm")))
             .unwrap_or_default();
 
-        let node_exists = nvm_root.join(version_without_v).join("node.exe").exists() ||
-                          nvm_root.join(format!("v{}", version_without_v)).join("node.exe").exists();
+        let node_exists = nvm_root.join(version_without_v).join("node.exe").exists()
+            || nvm_root
+                .join(format!("v{}", version_without_v))
+                .join("node.exe")
+                .exists();
 
         if !node_exists {
             return Err(format!(

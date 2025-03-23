@@ -81,14 +81,14 @@ pub fn init_client_path_configs() {
                         os: OSType::MacOS,
                     },
                 );
-              
+
                 configs.insert(
-                  ClientType::Windsurf,
-                  ClientPathConfig {
-                      base_dir: home_dir.join(".codeium/windsurf"),
-                      config_filename: "mcp_config.json".to_string(),
-                      os: OSType::MacOS,
-                  }
+                    ClientType::Windsurf,
+                    ClientPathConfig {
+                        base_dir: home_dir.join(".codeium/windsurf"),
+                        config_filename: "mcp_config.json".to_string(),
+                        os: OSType::MacOS,
+                    },
                 );
             }
 
@@ -115,14 +115,14 @@ pub fn init_client_path_configs() {
                         os: OSType::Windows,
                     },
                 );
-              
+
                 configs.insert(
-                  ClientType::Windsurf,
-                  ClientPathConfig {
-                      base_dir: home_dir.join(".codeium/windsurf"),
-                      config_filename: "mcp_config.json".to_string(),
-                      os: OSType::MacOS,
-                  }
+                    ClientType::Windsurf,
+                    ClientPathConfig {
+                        base_dir: home_dir.join(".codeium/windsurf"),
+                        config_filename: "mcp_config.json".to_string(),
+                        os: OSType::MacOS,
+                    },
                 );
             }
         }
