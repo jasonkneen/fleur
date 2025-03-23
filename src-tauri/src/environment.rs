@@ -4,6 +4,9 @@ use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 static UV_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NVM_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NODE_INSTALLED: AtomicBool = AtomicBool::new(false);
@@ -25,47 +28,52 @@ pub fn is_test_mode() -> bool {
 }
 
 pub fn get_npx_shim_path() -> std::path::PathBuf {
-    if is_test_mode() {
-        return std::path::PathBuf::from("/test/.local/share/fleur/bin/npx-fleur");
-    }
+  if is_test_mode() {
+      return std::path::PathBuf::from("/test/.local/share/fleur/bin/npx-fleur");
+  }
 
-    #[cfg(target_os = "macos")]
-    {
-        dirs::home_dir()
-            .unwrap_or_default()
-            .join(".local/share/fleur/bin/npx-fleur")
-    }
+  #[cfg(target_os = "macos")]
+  {
+      let path = dirs::home_dir()
+          .unwrap_or_default()
+          .join(".local/share/fleur/bin/npx-fleur");
 
-    #[cfg(target_os = "windows")]
-    {
-        // First check the expected local location
-        let local_path = dirs::data_local_dir()
-            .unwrap_or_default()
-            .join("fleur")
-            .join("bin")
-            .join("npx-fleur.cmd");
+      return path;
+  }
 
-        if local_path.exists() {
-            return local_path;
-        }
+  #[cfg(target_os = "windows")]
+  {
+      // First check the expected local location
+      let local_path = dirs::data_local_dir()
+          .unwrap_or_default()
+          .join("fleur")
+          .join("bin")
+          .join("npx-fleur.cmd");
 
-        // Then check if 'npx-fleur.cmd' is available in PATH
-        if let Ok(output) = Command::new("where").arg("npx-fleur.cmd").output() {
-            if output.status.success() {
-                let paths = String::from_utf8_lossy(&output.stdout);
-                if let Some(path) = paths.lines().next() {
-                    let path = path.trim();
-                    if !path.is_empty() {
-                        debug!("Found npx-fleur in PATH at {}", path);
-                        return std::path::PathBuf::from(path);
-                    }
-                }
-            }
-        }
+      if local_path.exists() {
+          return local_path;
+      }
 
-        // Return the expected path even if it doesn't exist yet
-        return local_path;
-    }
+      // Then check if 'npx-fleur.cmd' is available in PATH
+      if let Ok(output) = Command::new("where")
+          .arg("npx-fleur.cmd")
+          .output()
+      {
+          if output.status.success() {
+              let paths = String::from_utf8_lossy(&output.stdout);
+              if let Some(path) = paths.lines().next() {
+                  let path = path.trim();
+                  if !path.is_empty() {
+                      debug!("Found npx-fleur in PATH at {}", path);
+                      return std::path::PathBuf::from(path);
+                  }
+              }
+          }
+      }
+
+      // Return the expected path even if it doesn't exist yet
+      return local_path;
+  }
 }
 
 fn find_existing_uvx() -> Option<String> {
@@ -158,10 +166,10 @@ fn find_existing_uvx() -> Option<String> {
         }
 
         // Not found
-        None
+        return None
     }
 
-    None
+    return None;
 }
 
 pub fn get_uvx_path() -> Result<String, String> {
