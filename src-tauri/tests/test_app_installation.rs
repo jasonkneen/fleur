@@ -3,8 +3,8 @@ mod common;
 use common::setup_test_config;
 use fleur_lib::{
     app::{self, APP_REGISTRY_CACHE},
-    environment,
     clients::ClientType,
+    environment,
 };
 use serde_json::json;
 

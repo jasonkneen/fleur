@@ -1,7 +1,7 @@
 pub mod app;
+pub mod clients;
 pub mod environment;
 pub mod file_utils;
-pub mod clients;
 pub mod os;
 
 use log::{error, info};
@@ -11,42 +11,43 @@ use tauri_plugin_updater::{Builder as UpdaterBuilder, UpdaterExt};
 use time::macros::format_description;
 
 fn setup_logger() -> Result<(), Box<dyn std::error::Error>> {
-  #[cfg(target_os = "macos")]
-  let log_dir = {
-      let home = dirs::home_dir().ok_or("Could not find home directory")?;
-      home.join("Library/Logs/Fleur")
-  };
+    #[cfg(target_os = "macos")]
+    let log_dir = {
+        let home = dirs::home_dir().ok_or("Could not find home directory")?;
+        home.join("Library/Logs/Fleur")
+    };
 
-  #[cfg(target_os = "windows")]
-  let log_dir = {
-      let local_app_data = dirs::data_local_dir().ok_or("Could not find AppData\\Local directory")?;
-      local_app_data.join("Fleur").join("Logs")
-  };
+    #[cfg(target_os = "windows")]
+    let log_dir = {
+        let local_app_data =
+            dirs::data_local_dir().ok_or("Could not find AppData\\Local directory")?;
+        local_app_data.join("Fleur").join("Logs")
+    };
 
-  #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-  let log_dir = {
-      let home = dirs::home_dir().ok_or("Could not find home directory")?;
-      home.join(".local/share/fleur/logs")
-  };
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let log_dir = {
+        let home = dirs::home_dir().ok_or("Could not find home directory")?;
+        home.join(".local/share/fleur/logs")
+    };
 
-  fs::create_dir_all(&log_dir)?;
-  let log_file = log_dir.join("fleur.log");
+    fs::create_dir_all(&log_dir)?;
+    let log_file = log_dir.join("fleur.log");
 
-  let config = ConfigBuilder::new()
-      .set_time_format_custom(format_description!(
-          "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond]Z"
-      ))
-      .build();
+    let config = ConfigBuilder::new()
+        .set_time_format_custom(format_description!(
+            "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond]Z"
+        ))
+        .build();
 
-  #[cfg(debug_assertions)]
-  let level = LevelFilter::Debug;
+    #[cfg(debug_assertions)]
+    let level = LevelFilter::Debug;
 
-  #[cfg(not(debug_assertions))]
-  let level = LevelFilter::Info;
+    #[cfg(not(debug_assertions))]
+    let level = LevelFilter::Info;
 
-  WriteLogger::init(level, config, fs::File::create(log_file)?)?;
-  info!("Logger initialized with level: {:?}", level);
-  Ok(())
+    WriteLogger::init(level, config, fs::File::create(log_file)?)?;
+    info!("Logger initialized with level: {:?}", level);
+    Ok(())
 }
 
 async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {

@@ -1,10 +1,10 @@
+use crate::os::OSType;
 use dirs;
 use lazy_static::lazy_static;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
-use crate::os::OSType;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ClientType {
@@ -49,61 +49,63 @@ pub struct ClientPathConfig {
 }
 
 lazy_static! {
-    static ref CLIENT_PATH_CONFIGS: Mutex<std::collections::HashMap<ClientType, ClientPathConfig>> = Mutex::new(std::collections::HashMap::new());
+    static ref CLIENT_PATH_CONFIGS: Mutex<std::collections::HashMap<ClientType, ClientPathConfig>> =
+        Mutex::new(std::collections::HashMap::new());
 }
 
 pub fn init_client_path_configs() {
-  let mut configs = CLIENT_PATH_CONFIGS.lock().unwrap();
+    let mut configs = CLIENT_PATH_CONFIGS.lock().unwrap();
 
-  if configs.is_empty() {
-      if let Some(home_dir) = dirs::home_dir() {
-          // For macOS
-          #[cfg(target_os = "macos")]
-          {
-              configs.insert(
-                  ClientType::Claude,
-                  ClientPathConfig {
-                      base_dir: home_dir.join("Library/Application Support/Claude"),
-                      config_filename: "claude_desktop_config.json".to_string(),
-                      os: OSType::MacOS,
-                  }
-              );
+    if configs.is_empty() {
+        if let Some(home_dir) = dirs::home_dir() {
+            // For macOS
+            #[cfg(target_os = "macos")]
+            {
+                configs.insert(
+                    ClientType::Claude,
+                    ClientPathConfig {
+                        base_dir: home_dir.join("Library/Application Support/Claude"),
+                        config_filename: "claude_desktop_config.json".to_string(),
+                        os: OSType::MacOS,
+                    },
+                );
 
-              configs.insert(
-                  ClientType::Cursor,
-                  ClientPathConfig {
-                      base_dir: home_dir.join(".cursor/"),
-                      config_filename: "mcp.json".to_string(),
-                      os: OSType::MacOS,
-                  }
-              );
-          }
+                configs.insert(
+                    ClientType::Cursor,
+                    ClientPathConfig {
+                        base_dir: home_dir.join(".cursor/"),
+                        config_filename: "mcp.json".to_string(),
+                        os: OSType::MacOS,
+                    },
+                );
+            }
 
-          // For Windows
-          #[cfg(target_os = "windows")]
-          {
-              // Windows stores app data in AppData\Roaming
-              let appdata_roaming = dirs::config_dir().unwrap_or_else(|| home_dir.join("AppData/Roaming"));
-              configs.insert(
-                  ClientType::Claude,
-                  ClientPathConfig {
-                      base_dir: appdata_roaming.join("Claude"),
-                      config_filename: "claude_desktop_config.json".to_string(),
-                      os: OSType::Windows,
-                  }
-              );
+            // For Windows
+            #[cfg(target_os = "windows")]
+            {
+                // Windows stores app data in AppData\Roaming
+                let appdata_roaming =
+                    dirs::config_dir().unwrap_or_else(|| home_dir.join("AppData/Roaming"));
+                configs.insert(
+                    ClientType::Claude,
+                    ClientPathConfig {
+                        base_dir: appdata_roaming.join("Claude"),
+                        config_filename: "claude_desktop_config.json".to_string(),
+                        os: OSType::Windows,
+                    },
+                );
 
-              configs.insert(
-                  ClientType::Cursor,
-                  ClientPathConfig {
-                      base_dir: home_dir.join(".cursor/"),
-                      config_filename: "mcp.json".to_string(),
-                      os: OSType::Windows,
-                  }
-              );
-          }
-      }
-  }
+                configs.insert(
+                    ClientType::Cursor,
+                    ClientPathConfig {
+                        base_dir: home_dir.join(".cursor/"),
+                        config_filename: "mcp.json".to_string(),
+                        os: OSType::Windows,
+                    },
+                );
+            }
+        }
+    }
 }
 
 pub fn get_client_path_config(client: &ClientType) -> Result<ClientPathConfig, String> {
@@ -113,7 +115,10 @@ pub fn get_client_path_config(client: &ClientType) -> Result<ClientPathConfig, S
     if let Some(config) = configs.get(client) {
         Ok(config.clone())
     } else {
-        Err(format!("No path configuration for client: {}", client.as_str()))
+        Err(format!(
+            "No path configuration for client: {}",
+            client.as_str()
+        ))
     }
 }
 
@@ -141,135 +146,151 @@ pub fn get_default_client() -> ClientType {
 }
 
 pub fn check_client_installed(client: &ClientType) -> Result<bool, String> {
-  validate_client(client)?;
+    validate_client(client)?;
 
-  #[cfg(target_os = "macos")]
-  {
-      let app_path = std::path::PathBuf::from(format!("/Applications/{}.app", client.as_str()));
-      debug!("Checking for {}.app at: {}", client.as_str(), app_path.display());
-      return Ok(app_path.exists());
-  }
+    #[cfg(target_os = "macos")]
+    {
+        let app_path = std::path::PathBuf::from(format!("/Applications/{}.app", client.as_str()));
+        debug!(
+            "Checking for {}.app at: {}",
+            client.as_str(),
+            app_path.display()
+        );
+        return Ok(app_path.exists());
+    }
 
-  #[cfg(target_os = "windows")]
-  {
-      if *client == ClientType::Claude {
-          // Check AppData\Local\AnthropicClaude for Claude.exe
-          if let Some(local_app_data) = dirs::data_local_dir() {
-              let app_dir = local_app_data.join("AnthropicClaude");
+    #[cfg(target_os = "windows")]
+    {
+        if *client == ClientType::Claude {
+            // Check AppData\Local\AnthropicClaude for Claude.exe
+            if let Some(local_app_data) = dirs::data_local_dir() {
+                let app_dir = local_app_data.join("AnthropicClaude");
 
-              // Find the app directory without hardcoding version
-              if app_dir.exists() {
-                  debug!("Found Claude installation directory at: {}", app_dir.display());
+                // Find the app directory without hardcoding version
+                if app_dir.exists() {
+                    debug!(
+                        "Found Claude installation directory at: {}",
+                        app_dir.display()
+                    );
 
-                  // Look for any subdirectory that starts with "app-"
-                  if let Ok(entries) = std::fs::read_dir(&app_dir) {
-                      for entry in entries.filter_map(Result::ok) {
-                          let entry_path = entry.path();
-                          if entry_path.is_dir() {
-                              if let Some(dir_name) = entry_path.file_name() {
-                                  let dir_name = dir_name.to_string_lossy();
-                                  if dir_name.starts_with("app-") {
-                                      let exe_path = entry_path.join("Claude.exe");
-                                      debug!("Checking for Claude.exe at: {}", exe_path.display());
-                                      return Ok(exe_path.exists());
-                                  }
-                              }
-                          }
-                      }
-                  }
-              }
-          }
-          return Ok(false);
-      } else if *client == ClientType::Cursor {
-          // Check for Cursor installation
-          if let Some(local_app_data) = dirs::data_local_dir() {
-              let app_dir = local_app_data.join("Programs").join("Cursor");
-              let exe_path = app_dir.join("Cursor.exe");
-              debug!("Checking for Cursor.exe at: {}", exe_path.display());
-              return Ok(exe_path.exists());
-          }
-          return Ok(false);
-      }
+                    // Look for any subdirectory that starts with "app-"
+                    if let Ok(entries) = std::fs::read_dir(&app_dir) {
+                        for entry in entries.filter_map(Result::ok) {
+                            let entry_path = entry.path();
+                            if entry_path.is_dir() {
+                                if let Some(dir_name) = entry_path.file_name() {
+                                    let dir_name = dir_name.to_string_lossy();
+                                    if dir_name.starts_with("app-") {
+                                        let exe_path = entry_path.join("Claude.exe");
+                                        debug!(
+                                            "Checking for Claude.exe at: {}",
+                                            exe_path.display()
+                                        );
+                                        return Ok(exe_path.exists());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return Ok(false);
+        } else if *client == ClientType::Cursor {
+            // Check for Cursor installation
+            if let Some(local_app_data) = dirs::data_local_dir() {
+                let app_dir = local_app_data.join("Programs").join("Cursor");
+                let exe_path = app_dir.join("Cursor.exe");
+                debug!("Checking for Cursor.exe at: {}", exe_path.display());
+                return Ok(exe_path.exists());
+            }
+            return Ok(false);
+        }
 
-      debug!("Unknown client type for Windows: {}", client.as_str());
-      return Ok(false);
-  }
+        debug!("Unknown client type for Windows: {}", client.as_str());
+        return Ok(false);
+    }
 }
 
 pub fn restart_client_app(client: &ClientType) -> Result<String, String> {
-  validate_client(client)?;
+    validate_client(client)?;
 
-  info!("Restarting {} app...", client.as_str());
+    info!("Restarting {} app...", client.as_str());
 
-  #[cfg(target_os = "macos")]
-  {
-      std::process::Command::new("pkill")
-          .arg("-x")
-          .arg(client.as_str())
-          .output()
-          .map_err(|e| format!("Failed to kill {} app: {}", client.as_str(), e))?;
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("pkill")
+            .arg("-x")
+            .arg(client.as_str())
+            .output()
+            .map_err(|e| format!("Failed to kill {} app: {}", client.as_str(), e))?;
 
-      std::thread::sleep(std::time::Duration::from_millis(500));
+        std::thread::sleep(std::time::Duration::from_millis(500));
 
-      std::process::Command::new("open")
-          .arg("-a")
-          .arg(client.as_str())
-          .output()
-          .map_err(|e| format!("Failed to relaunch {} app: {}", client.as_str(), e))?;
+        std::process::Command::new("open")
+            .arg("-a")
+            .arg(client.as_str())
+            .output()
+            .map_err(|e| format!("Failed to relaunch {} app: {}", client.as_str(), e))?;
 
-      return Ok(format!("{} app restarted successfully", client.as_str()));
-  }
+        return Ok(format!("{} app restarted successfully", client.as_str()));
+    }
 
-  #[cfg(target_os = "windows")]
-  {
-      use std::process::Command;
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
 
-      // Kill the application
-      let _ = Command::new("taskkill")
-          .args(&["/F", "/IM", &format!("{}.exe", client.as_str())])
-          .output();
+        // Kill the application
+        let _ = Command::new("taskkill")
+            .args(&["/F", "/IM", &format!("{}.exe", client.as_str())])
+            .output();
 
-      std::thread::sleep(std::time::Duration::from_millis(1000));
+        std::thread::sleep(std::time::Duration::from_millis(1000));
 
-      // Restart the application
-      if *client == ClientType::Claude {
-          if let Some(local_app_data) = dirs::data_local_dir() {
-              let app_dir = local_app_data.join("AnthropicClaude");
+        // Restart the application
+        if *client == ClientType::Claude {
+            if let Some(local_app_data) = dirs::data_local_dir() {
+                let app_dir = local_app_data.join("AnthropicClaude");
 
-              if let Ok(entries) = std::fs::read_dir(&app_dir) {
-                  for entry in entries.filter_map(Result::ok) {
-                      let entry_path = entry.path();
-                      if entry_path.is_dir() {
-                          if let Some(dir_name) = entry_path.file_name() {
-                              let dir_name = dir_name.to_string_lossy();
-                              if dir_name.starts_with("app-") {
-                                  let exe_path = entry_path.join("Claude.exe");
-                                  if exe_path.exists() {
-                                      Command::new(exe_path)
-                                          .spawn()
-                                          .map_err(|e| format!("Failed to restart Claude: {}", e))?;
-                                      return Ok("Claude app restarted successfully".to_string());
-                                  }
-                              }
-                          }
-                      }
-                  }
-              }
-              return Err("Could not find Claude.exe to restart".to_string());
-          }
-      } else if *client == ClientType::Cursor {
-          if let Some(local_app_data) = dirs::data_local_dir() {
-              let exe_path = local_app_data.join("Programs").join("Cursor").join("Cursor.exe");
-              if exe_path.exists() {
-                  Command::new(exe_path)
-                      .spawn()
-                      .map_err(|e| format!("Failed to restart Cursor: {}", e))?;
-                  return Ok("Cursor app restarted successfully".to_string());
-              }
-          }
-          return Err("Could not find Cursor.exe to restart".to_string());
-      }
+                if let Ok(entries) = std::fs::read_dir(&app_dir) {
+                    for entry in entries.filter_map(Result::ok) {
+                        let entry_path = entry.path();
+                        if entry_path.is_dir() {
+                            if let Some(dir_name) = entry_path.file_name() {
+                                let dir_name = dir_name.to_string_lossy();
+                                if dir_name.starts_with("app-") {
+                                    let exe_path = entry_path.join("Claude.exe");
+                                    if exe_path.exists() {
+                                        Command::new(exe_path).spawn().map_err(|e| {
+                                            format!("Failed to restart Claude: {}", e)
+                                        })?;
+                                        return Ok("Claude app restarted successfully".to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return Err("Could not find Claude.exe to restart".to_string());
+            }
+        } else if *client == ClientType::Cursor {
+            if let Some(local_app_data) = dirs::data_local_dir() {
+                let exe_path = local_app_data
+                    .join("Programs")
+                    .join("Cursor")
+                    .join("Cursor.exe");
+                if exe_path.exists() {
+                    Command::new(exe_path)
+                        .spawn()
+                        .map_err(|e| format!("Failed to restart Cursor: {}", e))?;
+                    return Ok("Cursor app restarted successfully".to_string());
+                }
+            }
+            return Err("Could not find Cursor.exe to restart".to_string());
+        }
 
-      return Err(format!("Restart not implemented for client: {}", client.as_str()));
-  }
+        return Err(format!(
+            "Restart not implemented for client: {}",
+            client.as_str()
+        ));
+    }
 }
