@@ -61,7 +61,6 @@ pub fn init_client_path_configs() {
 
     if configs.is_empty() {
         if let Some(home_dir) = dirs::home_dir() {
-            // For macOS
             #[cfg(target_os = "macos")]
             {
                 configs.insert(
@@ -92,10 +91,8 @@ pub fn init_client_path_configs() {
                 );
             }
 
-            // For Windows
             #[cfg(target_os = "windows")]
             {
-                // Windows stores app data in AppData\Roaming
                 let appdata_roaming =
                     dirs::config_dir().unwrap_or_else(|| home_dir.join("AppData/Roaming"));
                 configs.insert(
@@ -107,6 +104,7 @@ pub fn init_client_path_configs() {
                     },
                 );
 
+                // TODO: this might not work but I don't care about cursor in windows for now
                 configs.insert(
                     ClientType::Cursor,
                     ClientPathConfig {
@@ -116,12 +114,13 @@ pub fn init_client_path_configs() {
                     },
                 );
 
+                // TODO: this might not work but I don't care about windsurf in windows for now
                 configs.insert(
                     ClientType::Windsurf,
                     ClientPathConfig {
                         base_dir: home_dir.join(".codeium/windsurf"),
                         config_filename: "mcp_config.json".to_string(),
-                        os: OSType::MacOS,
+                        os: OSType::Windows,
                     },
                 );
             }
@@ -183,18 +182,15 @@ pub fn check_client_installed(client: &ClientType) -> Result<bool, String> {
     #[cfg(target_os = "windows")]
     {
         if *client == ClientType::Claude {
-            // Check AppData\Local\AnthropicClaude for Claude.exe
             if let Some(local_app_data) = dirs::data_local_dir() {
                 let app_dir = local_app_data.join("AnthropicClaude");
 
-                // Find the app directory without hardcoding version
                 if app_dir.exists() {
                     debug!(
                         "Found Claude installation directory at: {}",
                         app_dir.display()
                     );
 
-                    // Look for any subdirectory that starts with "app-"
                     if let Ok(entries) = std::fs::read_dir(&app_dir) {
                         for entry in entries.filter_map(Result::ok) {
                             let entry_path = entry.path();
@@ -214,15 +210,6 @@ pub fn check_client_installed(client: &ClientType) -> Result<bool, String> {
                         }
                     }
                 }
-            }
-            return Ok(false);
-        } else if *client == ClientType::Cursor {
-            // Check for Cursor installation
-            if let Some(local_app_data) = dirs::data_local_dir() {
-                let app_dir = local_app_data.join("Programs").join("Cursor");
-                let exe_path = app_dir.join("Cursor.exe");
-                debug!("Checking for Cursor.exe at: {}", exe_path.display());
-                return Ok(exe_path.exists());
             }
             return Ok(false);
         }
@@ -293,20 +280,6 @@ pub fn restart_client_app(client: &ClientType) -> Result<String, String> {
                 }
                 return Err("Could not find Claude.exe to restart".to_string());
             }
-        } else if *client == ClientType::Cursor {
-            if let Some(local_app_data) = dirs::data_local_dir() {
-                let exe_path = local_app_data
-                    .join("Programs")
-                    .join("Cursor")
-                    .join("Cursor.exe");
-                if exe_path.exists() {
-                    Command::new(exe_path)
-                        .spawn()
-                        .map_err(|e| format!("Failed to restart Cursor: {}", e))?;
-                    return Ok("Cursor app restarted successfully".to_string());
-                }
-            }
-            return Err("Could not find Cursor.exe to restart".to_string());
         }
 
         return Err(format!(
