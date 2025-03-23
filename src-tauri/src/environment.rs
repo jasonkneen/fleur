@@ -296,21 +296,27 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
             .ok_or("Could not determine NVM_HOME")?;
 
         // Use the version without 'v' prefix for Windows NVM
-        let version = NODE_VERSION.trim_start_matches('v');
+        let version_no_v = NODE_VERSION.trim_start_matches('v');
 
-        // Make sure the version is in use
-        let _ = Command::new("nvm").arg("use").arg(version).output();
+        // Create paths to check for both with and without 'v' prefix
+        let possible_node_paths = vec![
+            nvm_root.join(version_no_v).join("node.exe"),              // Without 'v' prefix
+            nvm_root.join(format!("v{}", version_no_v)).join("node.exe"), // With 'v' prefix
+        ];
 
-        // Get the Node.js installation path
-        let node_path = nvm_root.join(version).join("node.exe");
-        let npx_path = nvm_root.join(version).join("npx.cmd");
+        // Find the first path that exists
+        let node_path = possible_node_paths.iter()
+            .find(|path| path.exists())
+            .ok_or_else(|| format!(
+                "Node.js executable not found at any of the expected paths: {:?}",
+                possible_node_paths
+            ))?;
 
-        if !node_path.exists() {
-            return Err(format!(
-                "Node.js executable not found at expected path: {}",
-                node_path.display()
-            ));
-        }
+        // Get the parent directory of the node.exe file to find npx.cmd in the same directory
+        let parent_dir = node_path.parent()
+            .ok_or("Could not determine parent directory of node.exe")?;
+
+        let npx_path = parent_dir.join("npx.cmd");
 
         if !npx_path.exists() {
             return Err(format!(
@@ -378,15 +384,15 @@ exec "$NPX" "$@"
     #[cfg(target_os = "windows")]
     {
         // For Windows, we need to create a .cmd batch file
-        let (node_path, npx_path) = get_nvm_node_paths()?;
+        match get_nvm_node_paths() {
+            Ok((node_path, npx_path)) => {
+                if let Some(parent) = shim_path.parent() {
+                    std::fs::create_dir_all(parent)
+                        .map_err(|e| format!("Failed to create shim directory: {}", e))?;
+                }
 
-        if let Some(parent) = shim_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create shim directory: {}", e))?;
-        }
-
-        let shim_content = format!(
-            r#"@echo off
+                let shim_content = format!(
+                    r#"@echo off
 :: NPX shim for Fleur on Windows
 
 set NODE={}
@@ -395,11 +401,19 @@ set PATH=%~dp0;%PATH%
 
 "%NPX%" %*
 "#,
-            node_path, npx_path
-        );
+                    node_path, npx_path
+                );
 
-        std::fs::write(&shim_path, shim_content)
-            .map_err(|e| format!("Failed to write shim script: {}", e))?;
+                std::fs::write(&shim_path, shim_content)
+                    .map_err(|e| format!("Failed to write shim script: {}", e))?;
+
+                info!("NPX shim created at {}", shim_path.display());
+            },
+            Err(e) => {
+                error!("Failed to get node paths for shim creation: {}", e);
+                return Err(format!("Failed to create NPX shim: {}", e));
+            }
+        }
     }
 
     info!("NPX shim created at {}", shim_path.display());
@@ -453,8 +467,27 @@ fn check_node_version() -> Result<String, String> {
                 .map_err(|e| format!("Failed to check nvm node version: {}", e))?;
 
             let output_str = String::from_utf8_lossy(&nvm_cmd.stdout);
-            if output_str.contains(&NODE_VERSION.trim_start_matches('v')) {
+            let version_no_v = NODE_VERSION.trim_start_matches('v');
+
+            // Check for both versions (with and without 'v' prefix)
+            if output_str.contains(NODE_VERSION) || output_str.contains(version_no_v) {
                 info!("Node.js {} is already installed via nvm", NODE_VERSION);
+                NODE_INSTALLED.store(true, Ordering::SeqCst);
+                return Ok(NODE_VERSION.to_string());
+            }
+
+            // Also check if the Node.js binary exists in either path
+            let nvm_root = std::env::var("NVM_HOME")
+                .ok()
+                .map(std::path::PathBuf::from)
+                .or_else(|| dirs::home_dir().map(|p| p.join("AppData").join("Roaming").join("nvm")))
+                .unwrap_or_default();
+
+            let node_exists = nvm_root.join(version_no_v).join("node.exe").exists() ||
+                              nvm_root.join(format!("v{}", version_no_v)).join("node.exe").exists();
+
+            if node_exists {
+                info!("Node.js {} binary found via nvm", NODE_VERSION);
                 NODE_INSTALLED.store(true, Ordering::SeqCst);
                 return Ok(NODE_VERSION.to_string());
             }
@@ -589,6 +622,23 @@ fn install_node() -> Result<(), String> {
             return Err(format!(
                 "Failed to set node version: {}",
                 String::from_utf8_lossy(&use_output.stderr)
+            ));
+        }
+
+        // Verify the installation by checking if the Node.js binary exists in expected locations
+        let nvm_root = std::env::var("NVM_HOME")
+            .ok()
+            .map(std::path::PathBuf::from)
+            .or_else(|| dirs::home_dir().map(|p| p.join("AppData").join("Roaming").join("nvm")))
+            .unwrap_or_default();
+
+        let node_exists = nvm_root.join(version_without_v).join("node.exe").exists() ||
+                          nvm_root.join(format!("v{}", version_without_v)).join("node.exe").exists();
+
+        if !node_exists {
+            return Err(format!(
+                "Node.js {} installation verification failed. Binary not found at expected locations.",
+                NODE_VERSION
             ));
         }
     }
@@ -1007,20 +1057,36 @@ pub fn ensure_environment_sync() -> Result<String, String> {
         return Ok("Environment setup completed while waiting".to_string());
     }
 
+    let mut has_critical_error = false;
+
     // Only check/install uv if we can't find uvx already
     if find_existing_uvx().is_none() {
         if !check_uv_installed() {
-            install_uv()?;
+            if let Err(e) = install_uv() {
+                error!("Failed to install uv: {}", e);
+                has_critical_error = true;
+            }
         }
     } else {
         info!("uvx is already installed, skipping uv installation");
     }
 
-    // Ensure node environment is ready
-    ensure_node_environment()?;
+    if !has_critical_error {
+        // Ensure node environment is ready
+        if let Err(e) = ensure_node_environment() {
+            error!("Failed to ensure node environment: {}", e);
+            has_critical_error = true;
+        }
+    }
 
-    info!("Synchronous environment setup completed");
-    Ok("Environment setup completed".to_string())
+    if !has_critical_error {
+        ENVIRONMENT_SETUP_COMPLETED.store(true, Ordering::SeqCst);
+        info!("Synchronous environment setup completed successfully");
+        Ok("Environment setup completed".to_string())
+    } else {
+        info!("Synchronous environment setup completed with errors");
+        Err("Environment setup failed with errors".to_string())
+    }
 }
 
 #[tauri::command]
