@@ -15,6 +15,9 @@ use std::sync::Mutex;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
+#[cfg(target_os = "windows")]
+use crate::environment::CREATE_NO_WINDOW;
+
 lazy_static! {
     static ref CONFIG_CACHE: Mutex<std::collections::HashMap<ClientType, Value>> =
         Mutex::new(std::collections::HashMap::new());
@@ -357,35 +360,35 @@ pub fn preload_dependencies() -> Result<(), String> {
                 if let Some(npm_cmd) = npm_path {
                     let _ = Command::new(&npm_cmd)
                         .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
-                        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                        .creation_flags(CREATE_NO_WINDOW)
                         .output();
 
                     let _ = Command::new(&npm_cmd)
                         .args(["cache", "add", "mcp-server-time"])
-                        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                        .creation_flags(CREATE_NO_WINDOW)
                         .output();
                 } else {
                     // Fallback to system npm
                     let _ = Command::new("npm")
                         .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
-                        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                        .creation_flags(CREATE_NO_WINDOW)
                         .output();
 
                     let _ = Command::new("npm")
                         .args(["cache", "add", "mcp-server-time"])
-                        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                        .creation_flags(CREATE_NO_WINDOW)
                         .output();
                 }
             } else {
                 // Fallback to system npm
                 let _ = Command::new("npm")
                     .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
-                    .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                    .creation_flags(CREATE_NO_WINDOW)
                     .output();
 
                 let _ = Command::new("npm")
                     .args(["cache", "add", "mcp-server-time"])
-                    .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                    .creation_flags(CREATE_NO_WINDOW)
                     .output();
             }
         }
@@ -495,7 +498,7 @@ pub fn install(
                         #[cfg(target_os = "windows")]
                         let _ = Command::new("npm")
                             .args(["cache", "add", package])
-                            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                            .creation_flags(CREATE_NO_WINDOW)
                             .output();
                     }
                 });

@@ -247,14 +247,12 @@ pub fn restart_client_app(client: &ClientType) -> Result<String, String> {
     {
         use std::process::Command;
 
-        // Kill the application
         let _ = Command::new("taskkill")
             .args(&["/F", "/IM", &format!("{}.exe", client.as_str())])
             .output();
 
         std::thread::sleep(std::time::Duration::from_millis(1000));
 
-        // Restart the application
         if *client == ClientType::Claude {
             if let Some(local_app_data) = dirs::data_local_dir() {
                 let app_dir = local_app_data.join("AnthropicClaude");

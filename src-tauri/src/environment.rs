@@ -7,6 +7,10 @@ use std::sync::Mutex;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
+// Windows-specific constants
+#[cfg(target_os = "windows")]
+pub const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 static UV_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NVM_INSTALLED: AtomicBool = AtomicBool::new(false);
 static NODE_INSTALLED: AtomicBool = AtomicBool::new(false);
@@ -43,7 +47,6 @@ pub fn get_npx_shim_path() -> std::path::PathBuf {
 
     #[cfg(target_os = "windows")]
     {
-        // First check the expected local location
         let local_path = dirs::data_local_dir()
             .unwrap_or_default()
             .join("fleur")
@@ -54,7 +57,6 @@ pub fn get_npx_shim_path() -> std::path::PathBuf {
             return local_path;
         }
 
-        // Then check if 'npx-fleur.cmd' is available in PATH
         if let Ok(output) = Command::new("where").arg("npx-fleur.cmd").output() {
             if output.status.success() {
                 let paths = String::from_utf8_lossy(&output.stdout);
@@ -68,7 +70,6 @@ pub fn get_npx_shim_path() -> std::path::PathBuf {
             }
         }
 
-        // Return the expected path even if it doesn't exist yet
         return local_path;
     }
 }
@@ -80,7 +81,6 @@ fn find_existing_uvx() -> Option<String> {
 
     #[cfg(target_os = "macos")]
     {
-        // Common locations to check for uvx on macOS
         let home_dir = match dirs::home_dir() {
             Some(dir) => dir,
             None => return None,
@@ -101,7 +101,6 @@ fn find_existing_uvx() -> Option<String> {
             }
         }
 
-        // Try finding with which command
         match Command::new("which").arg("uvx").output() {
             Ok(output) if output.status.success() => {
                 let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -114,7 +113,6 @@ fn find_existing_uvx() -> Option<String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Common locations to check for uvx on Windows
         let home_dir = match dirs::home_dir() {
             Some(dir) => dir,
             None => return None,
@@ -133,14 +131,12 @@ fn find_existing_uvx() -> Option<String> {
             }
         }
 
-        // Then check if it's in PATH using 'where' command
         match Command::new("where")
-            .arg("uvx.exe") // Be explicit about the .exe extension on Windows
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .arg("uvx.exe")
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
         {
             Ok(output) if output.status.success() => {
-                // Extract the first line, which is the first path found
                 let paths = String::from_utf8_lossy(&output.stdout);
                 if let Some(path) = paths.lines().next() {
                     let path = path.trim();
@@ -151,14 +147,12 @@ fn find_existing_uvx() -> Option<String> {
                 }
             }
             _ => {
-                // Another approach: check if 'uvx' command works
                 match Command::new("uvx")
                     .arg("--version")
-                    .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                    .creation_flags(CREATE_NO_WINDOW)
                     .output()
                 {
                     Ok(output) if output.status.success() => {
-                        // If the command works, it's in PATH somewhere
                         info!("uvx command works but couldn't determine exact path");
                         return Some("uvx".to_string());
                     }
@@ -167,11 +161,10 @@ fn find_existing_uvx() -> Option<String> {
             }
         }
 
-        // Not found
         return None;
     }
 
-    return None;
+    None
 }
 
 pub fn get_uvx_path() -> Result<String, String> {
@@ -208,7 +201,7 @@ pub fn get_uvx_path() -> Result<String, String> {
     #[cfg(target_os = "windows")]
     let uv_output = Command::new("where")
         .arg("uv.exe")
-        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| format!("Failed to get uv path: {}", e))?;
 
@@ -293,35 +286,29 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
 
     #[cfg(target_os = "windows")]
     {
-        // For Windows NVM
         if !check_nvm_installed() {
             return Err("NVM for Windows is not installed".to_string());
         }
 
-        // Get NVM root from environment or default location
         let nvm_root = std::env::var("NVM_HOME")
             .ok()
             .map(std::path::PathBuf::from)
             .or_else(|| dirs::home_dir().map(|p| p.join("AppData").join("Roaming").join("nvm")))
             .ok_or("Could not determine NVM_HOME")?;
 
-        // Use the version without 'v' prefix for Windows NVM
         let version_no_v = NODE_VERSION.trim_start_matches('v');
 
-        // Make sure the version is in use
         let _ = Command::new("nvm")
             .arg("use")
             .arg(version_no_v)
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .creation_flags(CREATE_NO_WINDOW)
             .output();
 
-        // Create paths to check for both with and without 'v' prefix
         let possible_node_paths = vec![
-            nvm_root.join(version_no_v).join("node.exe"), // Without 'v' prefix
-            nvm_root.join(format!("v{}", version_no_v)).join("node.exe"), // With 'v' prefix
+            nvm_root.join(version_no_v).join("node.exe"),
+            nvm_root.join(format!("v{}", version_no_v)).join("node.exe"),
         ];
 
-        // Find the first path that exists
         let node_path = possible_node_paths
             .iter()
             .find(|path| path.exists())
@@ -332,7 +319,6 @@ pub fn get_nvm_node_paths() -> Result<(String, String), String> {
                 )
             })?;
 
-        // Get the parent directory of the node.exe file to find npx.cmd in the same directory
         let parent_dir = node_path
             .parent()
             .ok_or("Could not determine parent directory of node.exe")?;
@@ -404,7 +390,6 @@ exec "$NPX" "$@"
 
     #[cfg(target_os = "windows")]
     {
-        // For Windows, we need to create a .cmd batch file
         match get_nvm_node_paths() {
             Ok((node_path, npx_path)) => {
                 if let Some(parent) = shim_path.parent() {
@@ -412,13 +397,11 @@ exec "$NPX" "$@"
                         .map_err(|e| format!("Failed to create shim directory: {}", e))?;
                 }
 
-                // Get the node directory to add to PATH
                 let node_dir = std::path::Path::new(&node_path)
                     .parent()
                     .ok_or("Could not determine parent directory of node.exe")?
                     .to_string_lossy();
 
-                // Create a more robust shim script for Windows
                 let shim_content = format!(
                     r#"@echo off
 :: NPX shim for Fleur on Windows
@@ -462,7 +445,6 @@ fn check_node_version() -> Result<String, String> {
 
     #[cfg(target_os = "macos")]
     {
-        // Check NVM-installed node first
         let shell_command = format!(
             r#"
           export NVM_DIR="$HOME/.nvm"
@@ -488,25 +470,22 @@ fn check_node_version() -> Result<String, String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Check NVM-installed node first for Windows
         if check_nvm_installed() {
             let nvm_cmd = Command::new("nvm")
                 .arg("list")
-                .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+                .creation_flags(CREATE_NO_WINDOW)
                 .output()
                 .map_err(|e| format!("Failed to check nvm node version: {}", e))?;
 
             let output_str = String::from_utf8_lossy(&nvm_cmd.stdout);
             let version_no_v = NODE_VERSION.trim_start_matches('v');
 
-            // Check for both versions (with and without 'v' prefix)
             if output_str.contains(NODE_VERSION) || output_str.contains(version_no_v) {
                 info!("Node.js {} is already installed via nvm", NODE_VERSION);
                 NODE_INSTALLED.store(true, Ordering::SeqCst);
                 return Ok(NODE_VERSION.to_string());
             }
 
-            // Also check if the Node.js binary exists in either path
             let nvm_root = std::env::var("NVM_HOME")
                 .ok()
                 .map(std::path::PathBuf::from)
@@ -527,7 +506,6 @@ fn check_node_version() -> Result<String, String> {
         }
     }
 
-    // If not found in NVM, check system node
     #[cfg(target_os = "macos")]
     let version_command = Command::new("node")
         .arg("--version")
@@ -537,7 +515,7 @@ fn check_node_version() -> Result<String, String> {
     #[cfg(target_os = "windows")]
     let version_command = Command::new("node")
         .arg("--version")
-        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| format!("Failed to check node version: {}", e))?;
 
@@ -588,7 +566,6 @@ fn install_node() -> Result<(), String> {
         return Ok(());
     }
 
-    // Double-check node version to avoid race conditions
     match check_node_version() {
         Ok(version) if version == NODE_VERSION => {
             info!(
@@ -603,7 +580,6 @@ fn install_node() -> Result<(), String> {
 
     info!("Installing Node.js {}", NODE_VERSION);
 
-    // Verify nvm is properly installed before using it
     if !check_nvm_installed() {
         return Err("nvm is required to install Node.js".to_string());
     }
@@ -635,13 +611,12 @@ fn install_node() -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        // On Windows, use the nvm command directly
         let version_without_v = NODE_VERSION.trim_start_matches('v');
 
         let output = Command::new("nvm")
             .arg("install")
             .arg(version_without_v)
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| format!("Failed to run node installation: {}", e))?;
 
@@ -652,11 +627,10 @@ fn install_node() -> Result<(), String> {
             ));
         }
 
-        // Set as default
         let use_output = Command::new("nvm")
             .arg("use")
             .arg(version_without_v)
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| format!("Failed to set node version: {}", e))?;
 
@@ -667,7 +641,6 @@ fn install_node() -> Result<(), String> {
             ));
         }
 
-        // Verify the installation by checking if the Node.js binary exists in expected locations
         let nvm_root = std::env::var("NVM_HOME")
             .ok()
             .map(std::path::PathBuf::from)
@@ -706,7 +679,6 @@ fn check_nvm_installed() -> bool {
 
     #[cfg(target_os = "macos")]
     {
-        // First check if .nvm directory exists
         let nvm_dir = dirs::home_dir()
             .map(|path| path.join(".nvm"))
             .filter(|path| path.exists());
@@ -716,7 +688,6 @@ fn check_nvm_installed() -> bool {
             return false;
         }
 
-        // Then check if we can run nvm to confirm it's properly installed
         match check_nvm_version() {
             Ok(version) => {
                 info!("NVM version {} is installed", version);
@@ -732,7 +703,6 @@ fn check_nvm_installed() -> bool {
 
     #[cfg(target_os = "windows")]
     {
-        // Check if nvm-windows is installed
         let nvm_home = std::env::var("NVM_HOME")
             .ok()
             .map(std::path::PathBuf::from)
@@ -740,7 +710,6 @@ fn check_nvm_installed() -> bool {
 
         if let Some(nvm_path) = nvm_home {
             if nvm_path.exists() {
-                // Check for nvm.exe
                 let nvm_exe = nvm_path.join("nvm.exe");
                 if nvm_exe.exists() {
                     info!("NVM for Windows found at {}", nvm_path.display());
@@ -760,7 +729,6 @@ fn install_nvm() -> Result<(), String> {
         return Ok(());
     }
 
-    // Double-check nvm installation to avoid race conditions
     if check_nvm_installed() {
         info!("nvm is already installed, skipping installation");
         return Ok(());
@@ -796,16 +764,13 @@ fn install_nvm() -> Result<(), String> {
     {
         info!("Installing nvm for Windows...");
 
-        // Create a temporary directory for the installer
         let temp_dir = std::env::temp_dir().join("fleur_nvm_install");
         let _ = std::fs::create_dir_all(&temp_dir);
         let installer_path = temp_dir.join("nvm-setup.exe");
 
-        // Download the NVM for Windows installer
         let nvm_installer_url =
             "https://github.com/coreybutler/nvm-windows/releases/download/1.1.11/nvm-setup.exe";
 
-        // Use PowerShell to download the file
         let download_cmd = format!(
             "Invoke-WebRequest -Uri '{}' -OutFile '{}'",
             nvm_installer_url,
@@ -815,7 +780,7 @@ fn install_nvm() -> Result<(), String> {
         let dl_output = Command::new("powershell")
             .arg("-Command")
             .arg(&download_cmd)
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| format!("Failed to download nvm installer: {}", e))?;
 
@@ -826,11 +791,9 @@ fn install_nvm() -> Result<(), String> {
             ));
         }
 
-        // Run the installer (this will require user interaction)
-        // Note: For installers that need UI interaction, we don't use CREATE_NO_WINDOW flag
         info!("Starting NVM for Windows installer. Please follow the on-screen instructions.");
         let install_output = Command::new(&installer_path)
-            .arg("/SILENT") // Use /SILENT for minimal UI with progress bar
+            .arg("/SILENT")
             .output()
             .map_err(|e| format!("Failed to run nvm installer: {}", e))?;
 
@@ -841,11 +804,9 @@ fn install_nvm() -> Result<(), String> {
             ));
         }
 
-        // Clean up
         let _ = std::fs::remove_file(&installer_path);
         let _ = std::fs::remove_dir(&temp_dir);
 
-        // Verify installation
         if check_nvm_installed() {
             NVM_INSTALLED.store(true, Ordering::Relaxed);
             info!("nvm for Windows installed successfully");
@@ -861,20 +822,17 @@ fn check_uv_installed() -> bool {
         return true;
     }
 
-    // If we've already confirmed uv is installed, return early
     if UV_INSTALLED.load(Ordering::Relaxed) {
         debug!("uv already confirmed as installed");
         return true;
     }
 
-    // First check if uvx is already available - that implies uv is installed
     if find_existing_uvx().is_some() {
         info!("uvx found, assuming uv is already installed");
         UV_INSTALLED.store(true, Ordering::Relaxed);
         return true;
     }
 
-    // Then check if uv is in PATH
     #[cfg(target_os = "macos")]
     let which_cmd_output = Command::new("which")
         .arg("uv")
@@ -885,7 +843,7 @@ fn check_uv_installed() -> bool {
     let which_cmd_output = {
         Command::new("where")
             .arg("uv.exe")
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_or(false, |output| output.status.success())
     };
@@ -895,14 +853,13 @@ fn check_uv_installed() -> bool {
         return false;
     }
 
-    // Then check if we can run uv to confirm it's properly installed
     #[cfg(target_os = "macos")]
     let version_command = Command::new("uv").arg("--version").output();
 
     #[cfg(target_os = "windows")]
     let version_command = Command::new("uv")
         .arg("--version")
-        .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+        .creation_flags(CREATE_NO_WINDOW)
         .output();
 
     match version_command {
@@ -924,7 +881,6 @@ fn install_uv() -> Result<(), String> {
         return Ok(());
     }
 
-    // Double-check uv installation to avoid race conditions
     if check_uv_installed() {
         info!("uv is already installed, skipping installation");
         return Ok(());
@@ -951,8 +907,6 @@ fn install_uv() -> Result<(), String> {
             ));
         }
 
-        // The uv install script should install to ~/.cargo/bin
-        // Check if we need to source ~/.cargo/env to update the PATH
         let source_cargo_env = r#"
           source "$HOME/.cargo/env"
       "#;
@@ -965,7 +919,6 @@ fn install_uv() -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        // For Windows, download and run the installer PowerShell script
         let ps_command = r#"
           irm -Uri "https://astral.sh/uv/install.ps1" | iex
       "#;
@@ -975,7 +928,7 @@ fn install_uv() -> Result<(), String> {
             .arg("Bypass")
             .arg("-Command")
             .arg(ps_command)
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| format!("Failed to install uv: {}", e))?;
 
@@ -987,7 +940,6 @@ fn install_uv() -> Result<(), String> {
         }
     }
 
-    // Check if ~/.cargo/bin/uv exists and is executable
     let home_dir = dirs::home_dir().ok_or("Failed to get home directory")?;
 
     #[cfg(target_os = "macos")]
@@ -1013,7 +965,6 @@ fn install_uv() -> Result<(), String> {
             info!("uvx found at {}", uvx_path.display());
         }
     } else {
-        // Check if uv was installed elsewhere
         #[cfg(target_os = "macos")]
         let which_command = "which";
 
@@ -1026,7 +977,7 @@ fn install_uv() -> Result<(), String> {
         #[cfg(target_os = "windows")]
         let which_output = Command::new(which_command)
             .arg("uv.exe")
-            .creation_flags(0x08000000) // CREATE_NO_WINDOW flag
+            .creation_flags(CREATE_NO_WINDOW)
             .output();
 
         match which_output {
@@ -1059,12 +1010,10 @@ fn ensure_node_environment() -> Result<String, String> {
         return Ok("Node environment is ready".to_string());
     }
 
-    // First check if we have nvm installed, install if needed
     if !check_nvm_installed() {
         install_nvm()?;
     }
 
-    // Check if we have the correct node version, install if needed
     match check_node_version() {
         Ok(version) => {
             if version != NODE_VERSION {
@@ -1084,22 +1033,18 @@ fn ensure_node_environment() -> Result<String, String> {
         }
     }
 
-    // Ensure npx shim exists
     ensure_npx_shim()?;
 
-    // Mark environment setup as completed
     ENVIRONMENT_SETUP_COMPLETED.store(true, Ordering::SeqCst);
 
     Ok("Node environment is ready".to_string())
 }
 
-// New synchronous environment setup function for config.rs to use
 pub fn ensure_environment_sync() -> Result<String, String> {
     if is_test_mode() {
         return Ok("Environment setup completed".to_string());
     }
 
-    // If environment setup is already completed, return early
     if ENVIRONMENT_SETUP_COMPLETED.load(Ordering::SeqCst) {
         debug!("Environment setup already completed");
         return Ok("Environment setup already completed".to_string());
@@ -1107,24 +1052,20 @@ pub fn ensure_environment_sync() -> Result<String, String> {
 
     info!("Starting synchronous environment setup");
 
-    // Use a mutex to prevent concurrent setup operations
     let _lock = match ENVIRONMENT_SETUP_LOCK.try_lock() {
         Ok(guard) => guard,
         Err(_) => {
             info!("Another environment setup is already in progress, waiting...");
-            // Block until lock is available for synchronous operation
             ENVIRONMENT_SETUP_LOCK.lock().unwrap()
         }
     };
 
-    // Check again if setup was completed while waiting
     if ENVIRONMENT_SETUP_COMPLETED.load(Ordering::SeqCst) {
         return Ok("Environment setup completed while waiting".to_string());
     }
 
     let mut has_critical_error = false;
 
-    // Only check/install uv if we can't find uvx already
     if find_existing_uvx().is_none() {
         if !check_uv_installed() {
             if let Err(e) = install_uv() {
@@ -1137,7 +1078,6 @@ pub fn ensure_environment_sync() -> Result<String, String> {
     }
 
     if !has_critical_error {
-        // Ensure node environment is ready
         if let Err(e) = ensure_node_environment() {
             error!("Failed to ensure node environment: {}", e);
             has_critical_error = true;
@@ -1160,15 +1100,12 @@ pub fn ensure_environment() -> Result<String, String> {
         return Ok("Environment setup started".to_string());
     }
 
-    // Use a more reliable way to check if we're already setting up the environment
     if ENVIRONMENT_SETUP_STARTED.swap(true, Ordering::SeqCst) {
         info!("Environment setup already in progress, skipping");
         return Ok("Environment setup already in progress".to_string());
     }
 
-    // Use a thread-safe approach for environment setup
     std::thread::spawn(|| {
-        // Use a mutex to prevent concurrent setup operations
         let _lock = match ENVIRONMENT_SETUP_LOCK.try_lock() {
             Ok(guard) => guard,
             Err(_) => {
@@ -1180,7 +1117,6 @@ pub fn ensure_environment() -> Result<String, String> {
 
         info!("Starting environment setup");
 
-        // Only check/install uv if we can't find uvx already
         if find_existing_uvx().is_none() {
             if !check_uv_installed() {
                 if let Err(e) = install_uv() {
@@ -1191,7 +1127,6 @@ pub fn ensure_environment() -> Result<String, String> {
             info!("uvx is already installed, skipping uv installation");
         }
 
-        // Ensure node environment is ready
         if let Err(e) = ensure_node_environment() {
             error!("Failed to ensure node environment: {}", e);
         }
@@ -1203,11 +1138,10 @@ pub fn ensure_environment() -> Result<String, String> {
     Ok("Environment setup started".to_string())
 }
 
-// Helper function to create commands that don't spawn windows on Windows
 #[cfg(target_os = "windows")]
 pub fn create_windowless_command(program: &str) -> Command {
     let mut cmd = Command::new(program);
-    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW flag
+    cmd.creation_flags(CREATE_NO_WINDOW);
     cmd
 }
 
