@@ -315,13 +315,55 @@ pub fn restart_client_app(client: &str) -> Result<String, String> {
 pub fn preload_dependencies() -> Result<(), String> {
     info!("Preloading dependencies");
     std::thread::spawn(|| {
-        let _ = Command::new("npm")
-            .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
-            .output();
+        #[cfg(target_os = "macos")]
+        {
+            let _ = Command::new("npm")
+                .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
+                .output();
 
-        let _ = Command::new("npm")
-            .args(["cache", "add", "mcp-server-time"])
-            .output();
+            let _ = Command::new("npm")
+                .args(["cache", "add", "mcp-server-time"])
+                .output();
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            // Use the npm executable from the NVM installation if available
+            if let Ok((_, npx_path)) = environment::get_nvm_node_paths() {
+                let npm_path = std::path::Path::new(&npx_path)
+                    .parent()
+                    .map(|p| p.join("npm.cmd"))
+                    .filter(|p| p.exists());
+
+                if let Some(npm_cmd) = npm_path {
+                    let _ = Command::new(npm_cmd)
+                        .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
+                        .output();
+
+                    let _ = Command::new(npm_cmd)
+                        .args(["cache", "add", "mcp-server-time"])
+                        .output();
+                } else {
+                    // Fallback to system npm
+                    let _ = Command::new("npm")
+                        .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
+                        .output();
+
+                    let _ = Command::new("npm")
+                        .args(["cache", "add", "mcp-server-time"])
+                        .output();
+                }
+            } else {
+                // Fallback to system npm
+                let _ = Command::new("npm")
+                    .args(["cache", "add", "@modelcontextprotocol/server-puppeteer"])
+                    .output();
+
+                let _ = Command::new("npm")
+                    .args(["cache", "add", "mcp-server-time"])
+                    .output();
+            }
+        }
     });
     Ok(())
 }
@@ -699,23 +741,48 @@ pub fn uninstall_fleur_mcp(client: &str) -> Result<String, String> {
 
 #[tauri::command]
 pub fn check_onboarding_completed() -> Result<bool, String> {
-    let home = match dirs::home_dir() {
-        Some(path) => path,
-        None => return Err("Could not determine home directory".to_string()),
+    #[cfg(target_os = "macos")]
+    let onboarding_file = {
+        let home = match dirs::home_dir() {
+            Some(path) => path,
+            None => return Err("Could not determine home directory".to_string()),
+        };
+        home.join(".fleur/onboarding_completed")
     };
-    let onboarding_file = home.join(".fleur/onboarding_completed");
+
+    #[cfg(target_os = "windows")]
+    let onboarding_file = {
+        let appdata = match dirs::config_dir() {
+            Some(path) => path,
+            None => return Err("Could not determine AppData directory".to_string()),
+        };
+        appdata.join("fleur").join("onboarding_completed")
+    };
 
     debug!("Checking onboarding file at: {}", onboarding_file.display());
     Ok(onboarding_file.exists())
 }
 
+
 #[tauri::command]
 pub fn reset_onboarding_completed() -> Result<bool, String> {
-    let home = match dirs::home_dir() {
-        Some(path) => path,
-        None => return Err("Could not determine home directory".to_string()),
+    #[cfg(target_os = "macos")]
+    let onboarding_file = {
+        let home = match dirs::home_dir() {
+            Some(path) => path,
+            None => return Err("Could not determine home directory".to_string()),
+        };
+        home.join(".fleur/onboarding_completed")
     };
-    let onboarding_file = home.join(".fleur/onboarding_completed");
+
+    #[cfg(target_os = "windows")]
+    let onboarding_file = {
+        let appdata = match dirs::config_dir() {
+            Some(path) => path,
+            None => return Err("Could not determine AppData directory".to_string()),
+        };
+        appdata.join("fleur").join("onboarding_completed")
+    };
 
     debug!("Resetting onboarding file at: {}", onboarding_file.display());
     if onboarding_file.exists() {
