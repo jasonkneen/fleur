@@ -10,6 +10,7 @@ use crate::os::OSType;
 pub enum ClientType {
     Claude,
     Cursor,
+    Windsurf,
 }
 
 impl ClientType {
@@ -17,6 +18,7 @@ impl ClientType {
         match self {
             ClientType::Claude => "Claude",
             ClientType::Cursor => "Cursor",
+            ClientType::Windsurf => "Windsurf",
         }
     }
 
@@ -24,16 +26,17 @@ impl ClientType {
         match s {
             "Claude" => Some(ClientType::Claude),
             "Cursor" => Some(ClientType::Cursor),
+            "Windsurf" => Some(ClientType::Windsurf),
             _ => None,
         }
     }
 
     pub fn all() -> Vec<ClientType> {
-        vec![ClientType::Claude, ClientType::Cursor]
+        vec![ClientType::Claude, ClientType::Cursor, ClientType::Windsurf]
     }
 
     pub fn all_as_str() -> Vec<&'static str> {
-        vec!["Claude", "Cursor"]
+        vec!["Claude", "Cursor", "Windsurf"]
     }
 
     pub fn default() -> ClientType {
@@ -71,6 +74,15 @@ pub fn init_client_path_configs() {
                 ClientPathConfig {
                     base_dir: home_dir.join(".cursor/"),
                     config_filename: "mcp.json".to_string(),
+                    os: OSType::MacOS,
+                }
+            );
+
+            configs.insert(
+                ClientType::Windsurf,
+                ClientPathConfig {
+                    base_dir: home_dir.join(".codeium/windsurf"),
+                    config_filename: "mcp_config.json".to_string(),
                     os: OSType::MacOS,
                 }
             );
