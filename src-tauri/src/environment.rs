@@ -422,13 +422,14 @@ exec "$NPX" "$@"
                 r#"@echo off
 :: NPX shim for Fleur on Windows
 
+set NODE_PATH={}
 set NODE={}
 set NPX={}
-set PATH={}{}%PATH%
+set PATH=%NODE_PATH%;%PATH%
 
 "%NPX%" %*
 "#,
-                node_path, npx_path, node_dir, std::path::MAIN_SEPARATOR
+                node_dir, node_path, npx_path
             );
 
                 std::fs::write(&shim_path, shim_content)
