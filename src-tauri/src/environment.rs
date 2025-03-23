@@ -411,18 +411,25 @@ exec "$NPX" "$@"
                         .map_err(|e| format!("Failed to create shim directory: {}", e))?;
                 }
 
+                // Get the node directory to add to PATH
+                let node_dir = std::path::Path::new(&node_path)
+                    .parent()
+                    .ok_or("Could not determine parent directory of node.exe")?
+                    .to_string_lossy();
+
+                // Create a more robust shim script for Windows
                 let shim_content = format!(
-                    r#"@echo off
+                r#"@echo off
 :: NPX shim for Fleur on Windows
 
 set NODE={}
 set NPX={}
-set PATH=%~dp0;%PATH%
+set PATH={}{}%PATH%
 
 "%NPX%" %*
 "#,
-                    node_path, npx_path
-                );
+                node_path, npx_path, node_dir, std::path::MAIN_SEPARATOR
+            );
 
                 std::fs::write(&shim_path, shim_content)
                     .map_err(|e| format!("Failed to write shim script: {}", e))?;
