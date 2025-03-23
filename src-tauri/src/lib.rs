@@ -113,6 +113,49 @@ fn open_system_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn open_logs_folder() -> Result<(), String> {
+    info!("Opening logs folder with system command");
+
+    let log_dir = {
+        #[cfg(target_os = "macos")]
+        {
+            let home = dirs::home_dir().ok_or("Could not find home directory")?;
+            home.join("Library/Logs/Fleur")
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            let local_app_data = dirs::data_local_dir().ok_or("Could not find AppData\\Local directory")?;
+            local_app_data.join("Fleur").join("Logs")
+        }
+    };
+
+    if !log_dir.exists() {
+        return Err(format!("Logs directory does not exist: {:?}", log_dir));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        Command::new("open")
+            .arg(&log_dir)
+            .output()
+            .map_err(|e| format!("Failed to open logs folder: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        Command::new("explorer")
+            .arg(&log_dir)
+            .output()
+            .map_err(|e| format!("Failed to open logs folder: {}", e))?;
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize logger
@@ -154,6 +197,7 @@ pub fn run() {
             environment::ensure_environment,
             log_from_frontend,
             open_system_url,
+            open_logs_folder,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

@@ -1,27 +1,28 @@
-import { toast } from 'sonner';
-import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { getVersion } from '@tauri-apps/api/app';
-import { refreshApps } from '@/store/app';
-import { updateTauriTheme } from '@/lib/update-tauri-theme';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
+import { refreshApps } from "@/store/app";
+import { updateTauriTheme } from "@/lib/update-tauri-theme";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { OnboardingSettings } from './onboarding-settings';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { OnboardingSettings } from "./onboarding-settings";
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
@@ -37,7 +38,8 @@ export function Settings() {
   const checkTelemetryStatus = async () => {
     try {
       // Get telemetry status from localStorage
-      const telemetryDisabled = localStorage.getItem('telemetry-disabled') === 'true';
+      const telemetryDisabled =
+        localStorage.getItem("telemetry-disabled") === "true";
       setIsTelemetryEnabled(!telemetryDisabled);
     } catch (error) {
       console.error("Failed to check telemetry status:", error);
@@ -47,22 +49,24 @@ export function Settings() {
   const toggleTelemetry = async (enabled: boolean) => {
     try {
       // Store telemetry preference in localStorage
-      localStorage.setItem('telemetry-disabled', (!enabled).toString());
+      localStorage.setItem("telemetry-disabled", (!enabled).toString());
       setIsTelemetryEnabled(enabled);
-      
+
       // Update window.analytics settings using Segment-compatible approach
       if (window.analytics) {
         if (!enabled) {
           // Disable tracking
-          window.analytics.track = function() {};
-          window.analytics.page = function() {};
-          window.analytics.identify = function() {};
-          window.analytics.group = function() {};
-          
+          window.analytics.track = function () {};
+          window.analytics.page = function () {};
+          window.analytics.identify = function () {};
+          window.analytics.group = function () {};
+
           // Set anonymousId to null
-          window.analytics.user = function() {
+          window.analytics.user = function () {
             return {
-              anonymousId: function() { return null; }
+              anonymousId: function () {
+                return null;
+              },
             };
           };
         } else {
@@ -70,10 +74,13 @@ export function Settings() {
           window.location.reload();
         }
       }
-      
+
       toast.success(`Anonymous telemetry ${enabled ? "enabled" : "disabled"}`);
     } catch (error) {
-      console.error(`Failed to ${enabled ? "enable" : "disable"} telemetry:`, error);
+      console.error(
+        `Failed to ${enabled ? "enable" : "disable"} telemetry:`,
+        error
+      );
       toast.error(`Failed to ${enabled ? "enable" : "disable"} telemetry`, {
         description: String(error),
       });
@@ -85,8 +92,21 @@ export function Settings() {
     await updateTauriTheme(theme);
   };
 
+  const handleOpenLogsFolder = async () => {
+    try {
+      await invoke("open_logs_folder");
+    } catch (error) {
+      console.error("Failed to open logs folder:", error);
+      toast.error("Failed to open logs folder", {
+        description: String(error),
+      });
+    }
+  };
+
   const handleOpenRegistry = async () => {
-    await openUrl("https://github.com/fleuristes/app-registry?tab=readme-ov-file#contributing-your-mcp");
+    await openUrl(
+      "https://github.com/fleuristes/app-registry?tab=readme-ov-file#contributing-your-mcp"
+    );
   };
 
   const handleRefreshApps = async () => {
@@ -188,6 +208,16 @@ export function Settings() {
               checked={isTelemetryEnabled}
               onCheckedChange={toggleTelemetry}
             />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Logs</label>
+              <p className="text-sm text-muted-foreground">Access Fleur logs</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={handleOpenLogsFolder}>
+              Open Logs
+            </Button>
           </div>
           <Separator />
           <div className="flex items-center justify-between">
