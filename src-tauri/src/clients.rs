@@ -184,33 +184,22 @@ pub fn check_client_installed(client: &ClientType) -> Result<bool, String> {
         if *client == ClientType::Claude {
             if let Some(local_app_data) = dirs::data_local_dir() {
                 let app_dir = local_app_data.join("AnthropicClaude");
+                let exe_path = app_dir.join("claude.exe");
 
-                if app_dir.exists() {
-                    debug!(
-                        "Found Claude installation directory at: {}",
-                        app_dir.display()
-                    );
+                debug!(
+                    "Checking for claude.exe at: {}",
+                    exe_path.display()
+                );
 
-                    if let Ok(entries) = std::fs::read_dir(&app_dir) {
-                        for entry in entries.filter_map(Result::ok) {
-                            let entry_path = entry.path();
-                            if entry_path.is_dir() {
-                                if let Some(dir_name) = entry_path.file_name() {
-                                    let dir_name = dir_name.to_string_lossy();
-                                    if dir_name.starts_with("app-") {
-                                        let exe_path = entry_path.join("Claude.exe");
-                                        debug!(
-                                            "Checking for Claude.exe at: {}",
-                                            exe_path.display()
-                                        );
-                                        return Ok(exe_path.exists());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                let exists = exe_path.exists();
+                info!(
+                    "Claude {} at {}",
+                    if exists { "found" } else { "not found" },
+                    exe_path.display()
+                );
+                return Ok(exists);
             }
+            info!("Claude not found - could not locate AppData directory");
             return Ok(false);
         }
 
@@ -256,27 +245,18 @@ pub fn restart_client_app(client: &ClientType) -> Result<String, String> {
         if *client == ClientType::Claude {
             if let Some(local_app_data) = dirs::data_local_dir() {
                 let app_dir = local_app_data.join("AnthropicClaude");
+                let exe_path = app_dir.join("claude.exe");
 
-                if let Ok(entries) = std::fs::read_dir(&app_dir) {
-                    for entry in entries.filter_map(Result::ok) {
-                        let entry_path = entry.path();
-                        if entry_path.is_dir() {
-                            if let Some(dir_name) = entry_path.file_name() {
-                                let dir_name = dir_name.to_string_lossy();
-                                if dir_name.starts_with("app-") {
-                                    let exe_path = entry_path.join("Claude.exe");
-                                    if exe_path.exists() {
-                                        Command::new(exe_path).spawn().map_err(|e| {
-                                            format!("Failed to restart Claude: {}", e)
-                                        })?;
-                                        return Ok("Claude app restarted successfully".to_string());
-                                    }
-                                }
-                            }
-                        }
-                    }
+                if exe_path.exists() {
+                    info!("Claude executable found at: {}", exe_path.display());
+                    Command::new(&exe_path).spawn().map_err(|e| {
+                        format!("Failed to restart Claude: {}", e)
+                    })?;
+                    return Ok("Claude app restarted successfully".to_string());
                 }
-                return Err("Could not find Claude.exe to restart".to_string());
+
+                info!("Claude executable not found at: {}", exe_path.display());
+                return Err("Could not find claude.exe to restart".to_string());
             }
         }
 
