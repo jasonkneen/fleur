@@ -1,15 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { cn } from '@/lib/utils';
-import InstallMcpUI from './InstallMcp';
-import { Dialog } from '../ui/dialog';
-import { Button } from '../ui/button';
-import { TextAnimate } from '../magicui/text-animate';
-import { BlurFade } from '../magicui/blur-fade';
-import { DragRegion } from '../ui/drag-region';
-import { useStore } from '@tanstack/react-store';
-import { appStore } from '@/store/app';
+import React, { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { useStore } from "@tanstack/react-store";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { appStore } from "@/store/app";
+import { cn } from "@/lib/utils";
+import InstallMcpUI from "./InstallMcp";
+import { DragRegion } from "../ui/drag-region";
+import { Dialog } from "../ui/dialog";
+import { Button } from "../ui/button";
+import { TextAnimate } from "../magicui/text-animate";
+import { BlurFade } from "../magicui/blur-fade";
 
 interface OnboardingScreenProps {
   isOpen: boolean;
@@ -82,15 +82,12 @@ export function OnboardingScreen({
     if (currentStep !== 1) return;
 
     const checkOnboardingStatus = async () => {
-      if (!claudeOpened.current) return;
-
       try {
         const isCompleted = await invoke<boolean>("check_onboarding_completed");
         console.log("Onboarding check result:", isCompleted);
 
         if (isCompleted) {
           setCurrentStep(2);
-          claudeOpened.current = false;
         }
       } catch (error) {
         console.error("Failed to check onboarding status:", error);
@@ -116,6 +113,8 @@ export function OnboardingScreen({
     };
 
     window.addEventListener("focus", handleWindowFocus);
+
+    checkOnboardingStatus();
 
     return () => {
       window.removeEventListener("focus", handleWindowFocus);
