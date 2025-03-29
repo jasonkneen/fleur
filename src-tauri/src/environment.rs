@@ -111,7 +111,7 @@ fn find_existing_uvx() -> Option<String> {
                 info!("Found existing uvx using 'which' at {}", path);
                 return Some(path);
             }
-            _ => {}
+            _ => return None,
         }
     }
 
@@ -165,9 +165,10 @@ fn find_existing_uvx() -> Option<String> {
             }
         }
 
-        return None;
+        None
     }
 
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     None
 }
 
