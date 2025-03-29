@@ -1101,7 +1101,7 @@ pub fn ensure_environment_sync() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn ensure_environment() -> Result<String, String> {
+pub async fn ensure_environment() -> Result<String, String> {
     if is_test_mode() {
         return Ok("Environment setup started".to_string());
     }
@@ -1111,37 +1111,58 @@ pub fn ensure_environment() -> Result<String, String> {
         return Ok("Environment setup already in progress".to_string());
     }
 
-    std::thread::spawn(|| {
+    match tauri::async_runtime::spawn_blocking(|| {
         let _lock = match ENVIRONMENT_SETUP_LOCK.try_lock() {
             Ok(guard) => guard,
             Err(_) => {
                 info!("Another environment setup is already in progress");
                 ENVIRONMENT_SETUP_STARTED.store(false, Ordering::SeqCst);
-                return;
+                return Err("Another environment setup is already in progress".to_string());
             }
         };
 
         info!("Starting environment setup");
+        let mut setup_failed = false;
 
         if find_existing_uvx().is_none() {
             if !check_uv_installed() {
                 if let Err(e) = install_uv() {
                     error!("Failed to install uv: {}", e);
+                    setup_failed = true;
                 }
             }
         } else {
             info!("uvx is already installed, skipping uv installation");
         }
 
-        if let Err(e) = ensure_node_environment() {
-            error!("Failed to ensure node environment: {}", e);
+        if !setup_failed {
+            if let Err(e) = ensure_node_environment() {
+                error!("Failed to ensure node environment: {}", e);
+                setup_failed = true;
+            }
         }
 
-        info!("Environment setup completed");
         ENVIRONMENT_SETUP_STARTED.store(false, Ordering::SeqCst);
-    });
 
-    Ok("Environment setup started".to_string())
+        if setup_failed {
+            ENVIRONMENT_SETUP_COMPLETED.store(false, Ordering::SeqCst);
+            Err("Environment setup failed. Please check the logs for details.".to_string())
+        } else {
+            ENVIRONMENT_SETUP_COMPLETED.store(true, Ordering::SeqCst);
+            info!("Environment setup completed successfully");
+            Ok("Environment setup completed".to_string())
+        }
+    })
+    .await
+    {
+        Ok(result) => result,
+        Err(e) => {
+            error!("Environment setup task panicked: {}", e);
+            ENVIRONMENT_SETUP_STARTED.store(false, Ordering::SeqCst);
+            ENVIRONMENT_SETUP_COMPLETED.store(false, Ordering::SeqCst);
+            Err("Environment setup failed unexpectedly".to_string())
+        }
+    }
 }
 
 #[cfg(target_os = "windows")]

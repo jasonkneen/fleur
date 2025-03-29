@@ -8,9 +8,9 @@ use std::process::Command;
 use std::sync::Mutex;
 
 #[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
-#[cfg(target_os = "windows")]
 use crate::environment::CREATE_NO_WINDOW;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ClientType {
