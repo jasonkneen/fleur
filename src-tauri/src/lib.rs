@@ -126,7 +126,8 @@ fn open_logs_folder() -> Result<(), String> {
 
         #[cfg(target_os = "windows")]
         {
-            let local_app_data = dirs::data_local_dir().ok_or("Could not find AppData\\Local directory")?;
+            let local_app_data =
+                dirs::data_local_dir().ok_or("Could not find AppData\\Local directory")?;
             local_app_data.join("Fleur").join("Logs")
         }
     };

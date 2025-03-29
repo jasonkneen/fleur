@@ -6,7 +6,7 @@ use fleur_lib::environment;
 #[test]
 fn test_environment_setup() {
     environment::set_test_mode(true);
-    let result = environment::ensure_environment();
+    let result = environment::ensure_environment_sync();
     assert!(result.is_ok());
     environment::set_test_mode(false);
 }

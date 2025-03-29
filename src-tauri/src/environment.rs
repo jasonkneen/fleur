@@ -57,7 +57,11 @@ pub fn get_npx_shim_path() -> std::path::PathBuf {
             return local_path;
         }
 
-        if let Ok(output) = Command::new("where").arg("npx-fleur.cmd").output() {
+        if let Ok(output) = Command::new("where")
+            .arg("npx-fleur.cmd")
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
             if output.status.success() {
                 let paths = String::from_utf8_lossy(&output.stdout);
                 if let Some(path) = paths.lines().next() {
@@ -107,7 +111,7 @@ fn find_existing_uvx() -> Option<String> {
                 info!("Found existing uvx using 'which' at {}", path);
                 return Some(path);
             }
-            _ => {}
+            _ => return None,
         }
     }
 
@@ -161,9 +165,10 @@ fn find_existing_uvx() -> Option<String> {
             }
         }
 
-        return None;
+        None
     }
 
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     None
 }
 
@@ -490,7 +495,7 @@ fn check_node_version() -> Result<String, String> {
                 .ok()
                 .map(std::path::PathBuf::from)
                 .or_else(|| dirs::home_dir().map(|p| p.join("AppData").join("Roaming").join("nvm")))
-                .unwrap_or_default();
+                .ok_or("Could not determine NVM_HOME")?;
 
             let node_exists = nvm_root.join(version_no_v).join("node.exe").exists()
                 || nvm_root
@@ -792,15 +797,16 @@ fn install_nvm() -> Result<(), String> {
         }
 
         info!("Starting NVM for Windows installer. Please follow the on-screen instructions.");
-        let install_output = Command::new(&installer_path)
+        let installer_output = Command::new(&installer_path)
             .arg("/SILENT")
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| format!("Failed to run nvm installer: {}", e))?;
 
-        if !install_output.status.success() {
+        if !installer_output.status.success() {
             return Err(format!(
                 "NVM installation failed: {}",
-                String::from_utf8_lossy(&install_output.stderr)
+                String::from_utf8_lossy(&installer_output.stderr)
             ));
         }
 
@@ -1095,7 +1101,7 @@ pub fn ensure_environment_sync() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn ensure_environment() -> Result<String, String> {
+pub async fn ensure_environment() -> Result<String, String> {
     if is_test_mode() {
         return Ok("Environment setup started".to_string());
     }
@@ -1105,37 +1111,58 @@ pub fn ensure_environment() -> Result<String, String> {
         return Ok("Environment setup already in progress".to_string());
     }
 
-    std::thread::spawn(|| {
+    match tauri::async_runtime::spawn_blocking(|| {
         let _lock = match ENVIRONMENT_SETUP_LOCK.try_lock() {
             Ok(guard) => guard,
             Err(_) => {
                 info!("Another environment setup is already in progress");
                 ENVIRONMENT_SETUP_STARTED.store(false, Ordering::SeqCst);
-                return;
+                return Err("Another environment setup is already in progress".to_string());
             }
         };
 
         info!("Starting environment setup");
+        let mut setup_failed = false;
 
         if find_existing_uvx().is_none() {
             if !check_uv_installed() {
                 if let Err(e) = install_uv() {
                     error!("Failed to install uv: {}", e);
+                    setup_failed = true;
                 }
             }
         } else {
             info!("uvx is already installed, skipping uv installation");
         }
 
-        if let Err(e) = ensure_node_environment() {
-            error!("Failed to ensure node environment: {}", e);
+        if !setup_failed {
+            if let Err(e) = ensure_node_environment() {
+                error!("Failed to ensure node environment: {}", e);
+                setup_failed = true;
+            }
         }
 
-        info!("Environment setup completed");
         ENVIRONMENT_SETUP_STARTED.store(false, Ordering::SeqCst);
-    });
 
-    Ok("Environment setup started".to_string())
+        if setup_failed {
+            ENVIRONMENT_SETUP_COMPLETED.store(false, Ordering::SeqCst);
+            Err("Environment setup failed. Please check the logs for details.".to_string())
+        } else {
+            ENVIRONMENT_SETUP_COMPLETED.store(true, Ordering::SeqCst);
+            info!("Environment setup completed successfully");
+            Ok("Environment setup completed".to_string())
+        }
+    })
+    .await
+    {
+        Ok(result) => result,
+        Err(e) => {
+            error!("Environment setup task panicked: {}", e);
+            ENVIRONMENT_SETUP_STARTED.store(false, Ordering::SeqCst);
+            ENVIRONMENT_SETUP_COMPLETED.store(false, Ordering::SeqCst);
+            Err("Environment setup failed unexpectedly".to_string())
+        }
+    }
 }
 
 #[cfg(target_os = "windows")]
