@@ -4,7 +4,11 @@ use lazy_static::lazy_static;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::Mutex;
+
+#[cfg(target_os = "windows")]
+use crate::environment::CREATE_NO_WINDOW;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ClientType {
@@ -186,10 +190,7 @@ pub fn check_client_installed(client: &ClientType) -> Result<bool, String> {
                 let app_dir = local_app_data.join("AnthropicClaude");
                 let exe_path = app_dir.join("claude.exe");
 
-                debug!(
-                    "Checking for claude.exe at: {}",
-                    exe_path.display()
-                );
+                debug!("Checking for claude.exe at: {}", exe_path.display());
 
                 let exists = exe_path.exists();
                 info!(
@@ -238,6 +239,7 @@ pub fn restart_client_app(client: &ClientType) -> Result<String, String> {
 
         let _ = Command::new("taskkill")
             .args(&["/F", "/IM", &format!("{}.exe", client.as_str())])
+            .creation_flags(CREATE_NO_WINDOW)
             .output();
 
         std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -249,9 +251,10 @@ pub fn restart_client_app(client: &ClientType) -> Result<String, String> {
 
                 if exe_path.exists() {
                     info!("Claude executable found at: {}", exe_path.display());
-                    Command::new(&exe_path).spawn().map_err(|e| {
-                        format!("Failed to restart Claude: {}", e)
-                    })?;
+                    Command::new(&exe_path)
+                        .creation_flags(CREATE_NO_WINDOW)
+                        .spawn()
+                        .map_err(|e| format!("Failed to restart Claude: {}", e))?;
                     return Ok("Claude app restarted successfully".to_string());
                 }
 

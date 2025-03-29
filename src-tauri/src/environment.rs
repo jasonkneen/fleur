@@ -57,7 +57,11 @@ pub fn get_npx_shim_path() -> std::path::PathBuf {
             return local_path;
         }
 
-        if let Ok(output) = Command::new("where").arg("npx-fleur.cmd").output() {
+        if let Ok(output) = Command::new("where")
+            .arg("npx-fleur.cmd")
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
             if output.status.success() {
                 let paths = String::from_utf8_lossy(&output.stdout);
                 if let Some(path) = paths.lines().next() {
@@ -490,7 +494,7 @@ fn check_node_version() -> Result<String, String> {
                 .ok()
                 .map(std::path::PathBuf::from)
                 .or_else(|| dirs::home_dir().map(|p| p.join("AppData").join("Roaming").join("nvm")))
-                .unwrap_or_default();
+                .ok_or("Could not determine NVM_HOME")?;
 
             let node_exists = nvm_root.join(version_no_v).join("node.exe").exists()
                 || nvm_root
@@ -792,15 +796,16 @@ fn install_nvm() -> Result<(), String> {
         }
 
         info!("Starting NVM for Windows installer. Please follow the on-screen instructions.");
-        let install_output = Command::new(&installer_path)
+        let installer_output = Command::new(&installer_path)
             .arg("/SILENT")
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| format!("Failed to run nvm installer: {}", e))?;
 
-        if !install_output.status.success() {
+        if !installer_output.status.success() {
             return Err(format!(
                 "NVM installation failed: {}",
-                String::from_utf8_lossy(&install_output.stderr)
+                String::from_utf8_lossy(&installer_output.stderr)
             ));
         }
 
