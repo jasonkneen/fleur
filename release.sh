@@ -114,15 +114,15 @@ fi
 # Check if signing is possible
 if [ -n "$APPLE_SIGNING_IDENTITY" ] && [ -n "$APPLE_TEAM_ID" ]; then
   echo "Signing credentials found. Proceeding with app signing and notarization..."
-  
+
   cd ..
-  
+
   echo "Signing the app bundle using sign_app.sh..."
   ./sign_app.sh "src-tauri/$APP_BUNDLE_PATH"
-  
+
   echo "Creating, signing, and notarizing the DMG using create_signed_dmg.sh..."
   ./create_signed_dmg.sh "src-tauri/$APP_BUNDLE_PATH" "src-tauri/target/universal-apple-darwin/release/bundle/dmg/Fleur_${VERSION#v}_universal_signed.dmg"
-  
+
   cd src-tauri
 else
   echo "Signing credentials not found in .env file. Skipping app signing and notarization."

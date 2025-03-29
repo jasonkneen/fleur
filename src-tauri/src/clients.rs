@@ -4,13 +4,14 @@ use lazy_static::lazy_static;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::process::Command;
 use std::sync::Mutex;
 
 #[cfg(target_os = "windows")]
 use crate::environment::CREATE_NO_WINDOW;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
+use std::process::Command;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ClientType {
@@ -237,8 +238,6 @@ pub fn restart_client_app(client: &ClientType) -> Result<String, String> {
 
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
-
         let _ = Command::new("taskkill")
             .args(&["/F", "/IM", &format!("{}.exe", client.as_str())])
             .creation_flags(CREATE_NO_WINDOW)

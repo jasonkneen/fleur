@@ -1,5 +1,5 @@
 use crate::clients::{self, ClientPathConfig, ClientType};
-use crate::environment::{self, ensure_environment_sync, ensure_npx_shim, get_uvx_path};
+use crate::environment::{ensure_environment_sync, ensure_npx_shim, get_uvx_path};
 use crate::file_utils::{ensure_config_file, ensure_mcp_servers};
 use dirs;
 use lazy_static::lazy_static;
@@ -351,7 +351,7 @@ pub fn preload_dependencies() -> Result<(), String> {
         #[cfg(target_os = "windows")]
         {
             // Use the npm executable from the NVM installation if available
-            if let Ok((_, npx_path)) = environment::get_nvm_node_paths() {
+            if let Ok((_, npx_path)) = crate::environment::get_nvm_node_paths() {
                 let npm_path = std::path::Path::new(&npx_path)
                     .parent()
                     .map(|p| p.join("npm.cmd"))
